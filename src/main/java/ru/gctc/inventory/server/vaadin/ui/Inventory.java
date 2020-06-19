@@ -71,6 +71,10 @@ public class Inventory extends Div {
 
         /* GRID */
 
+        /* for search results */
+        var pathColumn = grid.addColumn(manager -> manager.getInventoryEntity().getName()).setHeader("Местонахождение").setResizable(true);
+        pathColumn.setVisible(false);
+
         /* common */
         var nameColumn = grid.addColumn(manager -> manager.getInventoryEntity().getName()).setHeader("Наименование").setResizable(true);
         grid.addColumn(manager -> manager.getInventoryEntity().getCount()).setHeader("Количество");

@@ -1,10 +1,12 @@
 package ru.gctc.inventory.server.db.services;
 
-import org.hibernate.Hibernate;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import ru.gctc.inventory.server.db.entities.InventoryEntity;
 import ru.gctc.inventory.server.db.entities.Item;
 import ru.gctc.inventory.server.db.entities.Place;
+import ru.gctc.inventory.server.db.repos.ItemRepository;
 import ru.gctc.inventory.server.db.repos.PlaceRepository;
 
 import java.util.List;
@@ -12,27 +14,29 @@ import java.util.Optional;
 
 @Service
 public class PlaceService extends InventoryEntityService<Place, PlaceRepository> implements ContainsItemsEntityService<Place> {
+    private ItemRepository itemRepository;
+    @Autowired
+    public void setItemRepository(ItemRepository itemRepository) {
+        this.itemRepository = itemRepository;
+    }
 
     public PlaceService(PlaceRepository repository) {
         super(repository);
     }
 
     @Override
-    public List<? extends InventoryEntity> getChildren(Place inventoryEntity) {
-        Hibernate.initialize(inventoryEntity.getItems());
-        return inventoryEntity.getItems();
+    public List<? extends InventoryEntity> getChildren(Place inventoryEntity, int offset, int limit) {
+        return null;
     }
 
     @Override
-    public int getChildCount(Place inventoryEntity) {
-        if(inventoryEntity.getItems()==null)
-            return 0;
-        return inventoryEntity.getItems().size();
+    public long getChildCount(Place inventoryEntity) {
+        return 0L;
     }
 
     @Override
     public boolean hasChildren(Place inventoryEntity) {
-        return inventoryEntity.getItems()!=null && !inventoryEntity.getItems().isEmpty();
+        return false;
     }
 
     @Override
@@ -41,12 +45,12 @@ public class PlaceService extends InventoryEntityService<Place, PlaceRepository>
     }
 
     @Override
-    public int itemCount(long entityId) {
-        return getChildCount(entityId);
+    public long itemCount(Place entity) {
+        return itemRepository.countAllByPlace(entity);
     }
 
     @Override
-    public List<Item> getAllItems(long entityId) {
-        return (List<Item>) getChildren(entityId);
+    public List<Item> getAllItems(Place entity, int offset, int limit) {
+        return itemRepository.findAllByPlace(entity, PageRequest.of(offset, limit)).getContent();
     }
 }

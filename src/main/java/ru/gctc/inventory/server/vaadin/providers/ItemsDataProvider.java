@@ -20,17 +20,21 @@ public class ItemsDataProvider {
     public <CI extends ContainsItems>
                     DataProvider<InventoryEntityManager<Item>, Void>
                     get(InventoryEntityManager<CI> entityManager) {
+
+        ContainsItemsEntityService<CI> containsItemsEntityService =
+                (ContainsItemsEntityService<CI>)
+                entityManager.getInventoryService();
+
         return DataProvider.fromCallbacks(query ->
-                        ((ContainsItemsEntityService<CI>)
-                                entityManager.getInventoryService())
+                        containsItemsEntityService
                                 .getAllItems(
-                                        entityManager.getInventoryEntity().getId(),
+                                        entityManager.getInventoryEntity(),
                                         query.getOffset(),
                                         query.getLimit())
                                 .stream()
                                 .map(factory::build)
-                , query -> ((ContainsItemsEntityService<CI>)
-                        entityManager.getInventoryService())
-                        .itemCount(entityManager.getInventoryEntity().getId()));
+
+                , query -> (int) containsItemsEntityService
+                        .itemCount(entityManager.getInventoryEntity()));
     }
 }

@@ -12,6 +12,7 @@ import ru.gctc.inventory.server.db.entities.*;
 import ru.gctc.inventory.server.db.services.BuildingService;
 import ru.gctc.inventory.server.db.services.ItemService;
 import ru.gctc.inventory.server.db.services.PlaceService;
+import ru.gctc.inventory.server.db.services.exceptions.EntityNotFoundException;
 import ru.gctc.inventory.server.vaadin.providers.InventoryEntityManager;
 import ru.gctc.inventory.server.vaadin.providers.InventoryEntityManagerFactory;
 
@@ -20,7 +21,6 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest
-//@Disabled
 public class SimpleTest {
 
     @Autowired
@@ -37,19 +37,19 @@ public class SimpleTest {
 
     @Test
     public void serviceCanListObjects() {
-        assertNotNull(buildingService.getAll());
+        assertNotNull(buildingService.getAll(1,10));
     }
 
     @Test
     public void objectsHaveNames() {
-        assertEquals("Здание №1", buildingService.getById(1L).get().getName());
-        assertEquals("Здание №2", buildingService.getById(2L).get().getName());
+        assertEquals("Здание №1", buildingService.getById(1L).orElseThrow().getName());
+        assertEquals("Здание №2", buildingService.getById(2L).orElseThrow().getName());
     }
 
     @Test
     @Transactional
-    public void buildingHaveFloors() {
-        List<? extends InventoryEntity> floors = buildingService.getChildren(1L);
+    public void buildingHaveFloors() throws EntityNotFoundException {
+        List<? extends InventoryEntity> floors = buildingService.getChildren(1L,0,10);
         assertEquals(2, floors.size());
     }
 
@@ -95,7 +95,7 @@ public class SimpleTest {
 
     @Test
     public void logAllItemsWithPaths() {
-        List<Item> items = itemService.getAll();
+        List<Item> items = itemService.getAll(1,5);
         for(Item item : items)
             logSpecificItemPath(item);
     }
@@ -112,7 +112,7 @@ public class SimpleTest {
     @Autowired
     PlaceService placeService;
     @Test
-    public void checkContainer() {
+    public void checkContainer() throws EntityNotFoundException {
         List<Item> items = placeService.getAllItems(1,0,1);
         assertNotNull(items);
     }
@@ -121,5 +121,11 @@ public class SimpleTest {
     public void findEngines() {
         List<Item> engines = itemService.findByName("двигатель",0,10);
         assertEquals(engines.size(),2);
+    }
+
+    @Test
+    public void findAll() {
+        List<Building> buildings = buildingService.getAll(0,5);
+        assertNotNull(buildings);
     }
 }

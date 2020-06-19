@@ -1,40 +1,41 @@
 package ru.gctc.inventory.server.db.services;
 
-import org.hibernate.Hibernate;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import ru.gctc.inventory.server.db.entities.Building;
-import ru.gctc.inventory.server.db.entities.Floor;
 import ru.gctc.inventory.server.db.entities.InventoryEntity;
 import ru.gctc.inventory.server.db.repos.BuildingRepository;
+import ru.gctc.inventory.server.db.repos.FloorRepository;
 
 import java.util.List;
 import java.util.Optional;
 
 @Service
 public class BuildingService extends InventoryEntityService<Building, BuildingRepository>{
+    private FloorRepository floorRepository;
+    @Autowired
+    public void setFloorRepository(FloorRepository floorRepository) {
+        this.floorRepository = floorRepository;
+    }
 
     public BuildingService(BuildingRepository repository) {
         super(repository);
     }
 
     @Override
-    public List<? extends InventoryEntity> getChildren(Building inventoryEntity) {
-        Hibernate.initialize(inventoryEntity.getFloors());
-        return inventoryEntity.getFloors();
+    public List<? extends InventoryEntity> getChildren(Building inventoryEntity, int offset, int limit) {
+        return floorRepository.findAllByBuilding(inventoryEntity, PageRequest.of(offset, limit)).getContent();
     }
 
     @Override
-    public int getChildCount(Building inventoryEntity) {
-        List<Floor> floors = inventoryEntity.getFloors();
-        if(floors==null)
-            return 0;
-        return floors.size();
+    public long getChildCount(Building inventoryEntity) {
+        return floorRepository.countAllByBuilding(inventoryEntity);
     }
 
     @Override
     public boolean hasChildren(Building inventoryEntity) {
-        List<Floor> floors = inventoryEntity.getFloors();
-        return floors!=null && !floors.isEmpty();
+        return floorRepository.existsFloorByBuilding(inventoryEntity);
     }
 
     @Override

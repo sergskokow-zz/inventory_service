@@ -1,24 +1,23 @@
 package ru.gctc.inventory.server.db.services;
 
-import org.springframework.transaction.annotation.Transactional;
 import ru.gctc.inventory.server.db.entities.ContainsItems;
 import ru.gctc.inventory.server.db.entities.Item;
+import ru.gctc.inventory.server.db.services.exceptions.EntityNotFoundException;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 public interface ContainsItemsEntityService<CI extends ContainsItems> extends InventoryService<CI> {
 
-    int itemCount(long entityId);
+    long itemCount(CI entity);
 
-    List<Item> getAllItems(long entityId);
-
-    @Transactional
-    default List<Item> getAllItems(long entityId, int offset, int limit) {
-        return /* ?! */ getAllItems(entityId)
-                .stream()
-                .skip(offset)
-                .limit(limit)
-                .collect(Collectors.toList());
+    default long itemCount(long entityId) throws EntityNotFoundException {
+        return itemCount(getById(entityId).orElseThrow());
     }
+
+    List<Item> getAllItems(CI entity, int offset, int limit);
+
+    default List<Item> getAllItems(long entityId, int offset, int limit) throws EntityNotFoundException {
+        return getAllItems(getById(entityId).orElseThrow(), offset, limit);
+    }
+
 }

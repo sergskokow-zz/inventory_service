@@ -1,15 +1,15 @@
 package ru.gctc.inventory.server.db.services;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.data.domain.PageRequest;
 import ru.gctc.inventory.server.db.entities.InventoryEntity;
 import ru.gctc.inventory.server.db.repos.InventoryRepository;
+import ru.gctc.inventory.server.db.services.exceptions.EntityAlreadyExistsException;
+import ru.gctc.inventory.server.db.services.exceptions.EntityNotFoundException;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
-@Transactional
 public abstract class InventoryEntityService
         <IE extends InventoryEntity, IR extends InventoryRepository<IE>>
         implements InventoryService<IE> {
@@ -17,6 +17,7 @@ public abstract class InventoryEntityService
     protected final IR repository;
 
     /* IDEA say "Could not autowire. No beans of 'IR' type found" but it works */
+    @SuppressWarnings("SpringJavaInjectionPointsAutowiringInspection")
     @Autowired
     public InventoryEntityService(IR repository) {
         this.repository = repository;
@@ -28,47 +29,29 @@ public abstract class InventoryEntityService
     }
 
     @Override
-    public List<IE> getAll() {
-        List<IE> all = new ArrayList<>();
-        repository.findAll().forEach(all::add);
-        return all;
+    public List<IE> getAll(int offset, int limit) {
+        return repository.findAll(PageRequest.of(offset, limit)).getContent();
     }
 
     @Override
-    public IE add(IE inventoryEntity) {
-        return repository.save(inventoryEntity); // TODO if(repo.exists(ie)) throw new ItemAlreadyExistsException();
+    public IE add(IE inventoryEntity) throws EntityAlreadyExistsException {
+        long id = inventoryEntity.getId();
+        if(repository.existsById(id))
+            throw new EntityAlreadyExistsException(inventoryEntity.getClass().getTypeName(), id, inventoryEntity.toString());
+        return repository.save(inventoryEntity);
     }
 
     @Override
-    public IE edit(IE inventoryEntity) {
-        return repository.save(inventoryEntity); // TODO if(!repo.existsById(ie.getId())) throw new ItemNotFoundException();
+    public IE edit(IE inventoryEntity) throws EntityNotFoundException {
+        long id = inventoryEntity.getId();
+        if(!repository.existsById(id))
+            throw new EntityNotFoundException(inventoryEntity.getClass().getTypeName(), id);
+        return repository.save(inventoryEntity);
     }
 
     @Override
     public Optional<IE> getById(long inventoryEntityId) {
         return repository.findById(inventoryEntityId);
-    }
-
-    @Override
-    public List<? extends InventoryEntity> getChildren(long inventoryEntityId) {
-        Optional<IE> target = repository.findById(inventoryEntityId);
-        return getChildren(target.orElseThrow());
-    }
-
-    @Override
-    public int getChildCount(long inventoryEntityId) {
-        return getChildCount(repository.findById(inventoryEntityId).orElseThrow());
-    }
-
-    @Override
-    public boolean hasChildren(long inventoryEntityId) {
-        return hasChildren(repository.findById(inventoryEntityId).orElseThrow());
-    }
-
-    @Override
-    public Optional<InventoryEntity> getParent(long inventoryEntityId) {
-        Optional<IE> target = repository.findById(inventoryEntityId);
-        return target.map(this::getParent).orElse(null);
     }
 
     @Override

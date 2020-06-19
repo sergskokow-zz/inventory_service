@@ -19,12 +19,12 @@ public class ItemService extends InventoryEntityService<Item, ItemRepository> {
     }
 
     @Override
-    public List<? extends InventoryEntity> getChildren(Item inventoryEntity) {
+    public List<? extends InventoryEntity> getChildren(Item inventoryEntity, int offset, int limit) {
         return null;
     }
 
     @Override
-    public int getChildCount(Item inventoryEntity) {
+    public long getChildCount(Item inventoryEntity) {
         return 0;
     }
 
