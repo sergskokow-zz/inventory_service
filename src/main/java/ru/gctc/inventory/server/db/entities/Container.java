@@ -6,6 +6,7 @@ import lombok.Setter;
 import org.hibernate.annotations.ColumnDefault;
 
 import javax.persistence.*;
+import javax.validation.constraints.NotNull;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -17,6 +18,7 @@ import java.util.List;
 public class Container extends InventoryEntity {
     @ManyToOne
     @JoinColumn(name = "room_id", nullable = false)
+    @NotNull
     private Room room;
 
     @OneToMany(mappedBy = "container", cascade = CascadeType.ALL)
@@ -31,19 +33,22 @@ public class Container extends InventoryEntity {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     @ColumnDefault("CASE")
+    @NotNull
     private Type type;
 
     @Column(nullable = false)
+    @NotNull
     private Integer number;
 
     private String description;
 
-    public Container(Type type, int number) {
+    public Container(Room room, Type type, int number) {
+        this.room = room;
         this.type = type;
         this.number = number;
     }
-    public Container(Type type, int number, String description) {
-        this(type, number);
+    public Container(Room room, Type type, int number, String description) {
+        this(room, type, number);
         this.description = description;
     }
 }

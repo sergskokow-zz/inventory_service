@@ -20,4 +20,12 @@ public interface ContainsItemsEntityService<CI extends ContainsItems> extends In
         return getAllItems(getById(entityId).orElseThrow(), offset, limit);
     }
 
+    enum FilteringBy {
+        NAME, NUMBER, WAYBILL_NUMBER, FACTORY_NUMBER
+    }
+    // TODO default implementation
+    List<Item> filter(FilteringBy field, CI entity, String substring, int offset, int limit);
+    // TODO default implementation
+    long countFiltered(FilteringBy field, CI entity, String substring);
+
 }

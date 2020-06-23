@@ -19,17 +19,17 @@ public class ItemService extends InventoryEntityService<Item, ItemRepository> {
     }
 
     @Override
-    public List<? extends InventoryEntity> getChildren(Item inventoryEntity, int offset, int limit) {
+    public List<? extends InventoryEntity> getChildren(InventoryEntity inventoryEntity, int offset, int limit) {
         return null;
     }
 
     @Override
-    public long getChildCount(Item inventoryEntity) {
+    public long getChildCount(InventoryEntity inventoryEntity) {
         return 0;
     }
 
     @Override
-    public boolean hasChildren(Item inventoryEntity) {
+    public boolean hasChildren(InventoryEntity inventoryEntity) {
         return false;
     }
 
@@ -43,6 +43,10 @@ public class ItemService extends InventoryEntityService<Item, ItemRepository> {
     }
 
     public List<Item> findByName(String name, int offset, int limit) {
-        return repository.findByNameContainingIgnoreCase(name, PageRequest.of(offset, limit)).getContent();
+        return repository.filter(name, PageRequest.of(offset, limit)).getContent();
+    }
+
+    public long countByName(String name) {
+        return repository.counter(name);
     }
 }

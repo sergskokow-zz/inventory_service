@@ -2,6 +2,7 @@ plugins {
     id 'org.springframework.boot' version '2.3.0.RELEASE'
     id 'io.spring.dependency-management' version '1.0.9.RELEASE'
     id 'java'
+    id 'com.vaadin' version '0.7.0'
 }
 
 group = 'ru.gctc.inventory'
@@ -15,6 +16,9 @@ configurations {
 
 repositories {
     mavenCentral()
+    maven{
+        url 'http://maven.vaadin.com/vaadin-addons'
+    }
 }
 
 ext {
@@ -33,6 +37,10 @@ dependencies {
         exclude group: 'org.junit.vintage', module: 'junit-vintage-engine'
     }
     testImplementation 'org.springframework.security:spring-security-test'
+
+    implementation 'org.vaadin.barcodes:barcode-bwipjs:1.0.0'
+    implementation 'com.flowingcode.addons:iron-icons:2.0.1'
+    implementation 'org.vaadin.olli:clipboardhelper:1.1.2'
 }
 
 dependencyManagement {

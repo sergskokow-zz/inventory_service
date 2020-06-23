@@ -29,7 +29,7 @@ public class InventoryEntityDataProvider extends AbstractBackEndHierarchicalData
         if(manager==null)
             return buildingService.getAll(query.getOffset(), query.getLimit()).stream().map(factory::build);
         return manager.getInventoryService().getChildren(
-                manager.getInventoryEntity().getId(), query.getOffset(), query.getLimit()) // TODO id -> entity
+                manager.getInventoryEntity(), query.getOffset(), query.getLimit())
                 .stream().map(factory::build);
     }
 
@@ -39,12 +39,12 @@ public class InventoryEntityDataProvider extends AbstractBackEndHierarchicalData
         InventoryEntityManager<? extends InventoryEntity> manager = query.getParent();
         if(manager==null)
             return (int) buildingService.count();
-        return (int) manager.getInventoryService().getChildCount(manager.getInventoryEntity().getId()); // TODO id -> entity
+        return (int) manager.getInventoryService().getChildCount(manager.getInventoryEntity());
     }
 
     @SneakyThrows
     @Override
     public boolean hasChildren(InventoryEntityManager<? extends InventoryEntity> item) {
-        return item.getInventoryService().hasChildren(item.getInventoryEntity().getId()); // TODO id -> entity
+        return item.getInventoryService().hasChildren(item.getInventoryEntity());
     }
 }

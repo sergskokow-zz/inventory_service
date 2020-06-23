@@ -24,17 +24,17 @@ public class ContainerService extends InventoryEntityService<Container, Containe
     }
 
     @Override
-    public List<? extends InventoryEntity> getChildren(Container inventoryEntity, int offset, int limit) {
+    public List<? extends InventoryEntity> getChildren(InventoryEntity inventoryEntity, int offset, int limit) {
         return placeRepository.findAllByContainer(inventoryEntity, PageRequest.of(offset, limit)).getContent();
     }
 
     @Override
-    public long getChildCount(Container inventoryEntity) {
+    public long getChildCount(InventoryEntity inventoryEntity) {
         return placeRepository.countAllByContainer(inventoryEntity);
     }
 
     @Override
-    public boolean hasChildren(Container inventoryEntity) {
+    public boolean hasChildren(InventoryEntity inventoryEntity) {
         return placeRepository.existsPlaceByContainer(inventoryEntity);
     }
 

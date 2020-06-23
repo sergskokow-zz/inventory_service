@@ -24,17 +24,17 @@ public class FloorService extends InventoryEntityService<Floor, FloorRepository>
     }
 
     @Override
-    public List<? extends InventoryEntity> getChildren(Floor inventoryEntity, int offset, int limit) {
+    public List<? extends InventoryEntity> getChildren(InventoryEntity inventoryEntity, int offset, int limit) {
         return roomRepository.findAllByFloor(inventoryEntity, PageRequest.of(offset, limit)).getContent();
     }
 
     @Override
-    public long getChildCount(Floor inventoryEntity) {
+    public long getChildCount(InventoryEntity inventoryEntity) {
         return roomRepository.countAllByFloor(inventoryEntity);
     }
 
     @Override
-    public boolean hasChildren(Floor inventoryEntity) {
+    public boolean hasChildren(InventoryEntity inventoryEntity) {
         return roomRepository.existsRoomByFloor(inventoryEntity);
     }
 

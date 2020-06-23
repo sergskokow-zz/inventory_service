@@ -22,19 +22,19 @@ public interface InventoryService<IE extends InventoryEntity> {
 
     Optional<IE> getById(long inventoryEntityId);
 
-    List<? extends InventoryEntity> getChildren(IE inventoryEntity, int offset, int limit);
+    List<? extends InventoryEntity> getChildren(InventoryEntity inventoryEntity, int offset, int limit);
 
     default List<? extends InventoryEntity> getChildren(long inventoryEntityId, int offset, int limit) throws EntityNotFoundException {
         return getChildren(getById(inventoryEntityId).orElseThrow(), offset, limit);
     }
 
-    long getChildCount(IE inventoryEntity);
+    long getChildCount(InventoryEntity inventoryEntity);
 
     default long getChildCount(long inventoryEntityId) throws EntityNotFoundException {
         return getChildCount(getById(inventoryEntityId).orElseThrow()); //TODO exception
     }
 
-    boolean hasChildren(IE inventoryEntity);
+    boolean hasChildren(InventoryEntity inventoryEntity);
 
     default boolean hasChildren(long inventoryEntityId) throws EntityNotFoundException {
         return hasChildren(getById(inventoryEntityId).orElseThrow()); // TODO exception

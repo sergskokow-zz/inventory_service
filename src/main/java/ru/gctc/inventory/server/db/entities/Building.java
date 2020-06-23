@@ -5,6 +5,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import javax.persistence.*;
+import javax.validation.constraints.NotNull;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -18,6 +19,7 @@ public class Building extends InventoryEntity {
     private List<Floor> floors = new ArrayList<>();
 
     @Column(nullable = false, unique = true)
+    @NotNull
     private String name;
 
     public Building(String name) {

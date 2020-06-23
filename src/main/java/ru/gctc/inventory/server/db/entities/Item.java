@@ -7,6 +7,7 @@ import org.hibernate.annotations.ColumnDefault;
 
 import javax.persistence.*;
 import javax.validation.constraints.Min;
+import javax.validation.constraints.NotNull;
 import java.math.BigDecimal;
 import java.util.Date;
 
@@ -25,6 +26,7 @@ public class Item extends InventoryEntity {
     private Room room;
 
     @Column(nullable = false)
+    @NotNull
     private String name;
 
     private String description;
@@ -32,9 +34,10 @@ public class Item extends InventoryEntity {
     @Column(nullable = false)
     @ColumnDefault("1")
     @Min(1L)
+    @NotNull
     private Integer count;
 
-    @Column(nullable = false, precision = 30, scale = 2)
+    @Column(precision = 30, scale = 2)
     @Min(0L)
     private BigDecimal cost;
 
@@ -46,13 +49,15 @@ public class Item extends InventoryEntity {
     public enum Status { IN_USE, WRITTEN_OFF, TRANSFERRED }
     @Enumerated(value = EnumType.STRING)
     @Column(nullable = false)
+    @ColumnDefault("IN_USE")
+    @NotNull
     private Status status;
 
     private String waybill;
 
     private String factory;
 
-    private String inventory_number;
+    private String number;
 
     @Temporal(TemporalType.TIMESTAMP)
     private Date inventory;
@@ -69,9 +74,19 @@ public class Item extends InventoryEntity {
     @Temporal(TemporalType.DATE)
     private Date commissioning;
 
-    private Byte[] photo;
+    @Lob
+    @Basic(fetch = FetchType.LAZY)
+    private byte[] photo;
 
-    public Item(String name) {
+    public Item(Place place, String name) {
+        this.place = place;
+        this.room = null;
+        this.name = name;
+    }
+
+    public Item(Room room, String name) {
+        this.place = null;
+        this.room = room;
         this.name = name;
     }
 }
