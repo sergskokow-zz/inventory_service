@@ -1,46 +1,37 @@
 package ru.gctc.inventory.server.db.services;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import ru.gctc.inventory.server.db.entities.Building;
 import ru.gctc.inventory.server.db.entities.InventoryEntity;
 import ru.gctc.inventory.server.db.repos.BuildingRepository;
-import ru.gctc.inventory.server.db.repos.FloorRepository;
 
 import java.util.List;
-import java.util.Optional;
 
 @Service
 public class BuildingService extends InventoryEntityService<Building, BuildingRepository>{
-    private FloorRepository floorRepository;
-    @Autowired
-    public void setFloorRepository(FloorRepository floorRepository) {
-        this.floorRepository = floorRepository;
-    }
 
     public BuildingService(BuildingRepository repository) {
         super(repository);
     }
 
     @Override
-    public List<? extends InventoryEntity> getChildren(InventoryEntity inventoryEntity, int offset, int limit) {
-        return floorRepository.findAllByBuilding(inventoryEntity, PageRequest.of(offset, limit)).getContent();
+    public List<Building> getChildren(InventoryEntity parent, int offset, int limit) {
+        return repository.findAll(PageRequest.of(offset, limit)).getContent();
     }
 
     @Override
-    public long getChildCount(InventoryEntity inventoryEntity) {
-        return floorRepository.countAllByBuilding(inventoryEntity);
+    public long getChildCount(InventoryEntity parent) {
+        return repository.count();
     }
 
     @Override
-    public boolean hasChildren(InventoryEntity inventoryEntity) {
-        return floorRepository.existsFloorByBuilding(inventoryEntity);
+    public boolean hasChildren(InventoryEntity parent) {
+        return repository.count() > 0;
     }
 
     @Override
-    public Optional<InventoryEntity> getParent(Building inventoryEntity) {
-        return Optional.empty();
+    public Building getParent(Building entity) {
+        return null;
     }
-
 }

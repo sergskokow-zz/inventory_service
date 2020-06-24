@@ -15,7 +15,4 @@ public abstract class InventoryEntity implements Serializable {
     @Id
     @GeneratedValue
     private Long id;
-
-    @Override
-    public abstract String toString();
 }

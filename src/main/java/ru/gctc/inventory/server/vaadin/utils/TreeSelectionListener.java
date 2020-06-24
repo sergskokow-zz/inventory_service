@@ -1,51 +1,51 @@
 package ru.gctc.inventory.server.vaadin.utils;
 
 import com.vaadin.flow.component.grid.Grid;
+import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.data.selection.SelectionEvent;
 import com.vaadin.flow.data.selection.SelectionListener;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
-import ru.gctc.inventory.server.db.entities.ContainsItems;
 import ru.gctc.inventory.server.db.entities.InventoryEntity;
 import ru.gctc.inventory.server.db.entities.Item;
-import ru.gctc.inventory.server.vaadin.providers.InventoryEntityManager;
-import ru.gctc.inventory.server.vaadin.providers.ItemsDataProvider;
+import ru.gctc.inventory.server.db.services.dto.Filters;
+import ru.gctc.inventory.server.vaadin.providers.ItemsDataProviderFactory;
 
-import java.util.List;
 import java.util.Optional;
 
 @Component
 public class TreeSelectionListener implements SelectionListener
-        <Grid<InventoryEntityManager<? extends InventoryEntity>>,
-                InventoryEntityManager<? extends InventoryEntity>> {
+        <Grid<InventoryEntity>, InventoryEntity> {
 
-    private ItemsDataProvider itemsDataProvider;
+    private ItemsDataProviderFactory itemsDataProviderFactory;
     @Autowired
-    public void setItemsDataProvider(ItemsDataProvider itemsDataProvider) {
-        this.itemsDataProvider = itemsDataProvider;
+    public void setItemsDataProviderFactory(ItemsDataProviderFactory itemsDataProviderFactory) {
+        this.itemsDataProviderFactory = itemsDataProviderFactory;
     }
 
-    private Grid<InventoryEntityManager<Item>> grid;
-    public void setGrid(Grid<InventoryEntityManager<Item>> grid) {
+    private Grid<Item> grid;
+    public void setGrid(Grid<Item> grid) {
         this.grid = grid;
     }
 
-    @Override
-    public void selectionChange(SelectionEvent<Grid<InventoryEntityManager<? extends InventoryEntity>>,
-            InventoryEntityManager<? extends InventoryEntity>> event) {
+    private TextField nameFilter, numberFilter, waybillFilter, factoryFilter;
+    public void setFilters(TextField nameFilter, TextField numberFilter, TextField waybillFilter, TextField factoryFilter) {
+        this.nameFilter = nameFilter;
+        this.numberFilter = numberFilter;
+        this.waybillFilter = waybillFilter;
+        this.factoryFilter = factoryFilter;
+    }
 
-        Optional<InventoryEntityManager<? extends InventoryEntity>> selectedItem =
-                event.getFirstSelectedItem();
-        if(selectedItem.isPresent()) {
-            InventoryEntityManager<? extends InventoryEntity> selectedManager = selectedItem.get();
-            InventoryEntity selectedEntity = selectedManager.getInventoryEntity();
-            if(selectedEntity instanceof ContainsItems) {
-                // manual type checking!
-                InventoryEntityManager<ContainsItems> container =
-                        (InventoryEntityManager<ContainsItems>) selectedManager;
-                grid.setDataProvider(itemsDataProvider.get(container));
-            } else
-                grid.setItems(List.of());
+    @Override
+    public void selectionChange(SelectionEvent<Grid<InventoryEntity>,InventoryEntity> event) {
+        Optional<InventoryEntity> selectedGridItem = event.getFirstSelectedItem();
+        if(selectedGridItem.isPresent()) {
+            InventoryEntity selected = selectedGridItem.get();
+            grid.setDataProvider(itemsDataProviderFactory.filter(selected,
+                    new Filters(nameFilter.getValue(),
+                            numberFilter.getValue(),
+                            waybillFilter.getValue(),
+                            factoryFilter.getValue())));
         }
     }
 }

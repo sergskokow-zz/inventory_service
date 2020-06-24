@@ -24,11 +24,6 @@ public class Place extends ContainsItems {
     @OneToMany(mappedBy = "place", cascade = CascadeType.ALL)
     private List<Item> items = new ArrayList<>();
 
-    @Override
-    public String toString() {
-        return String.format("%s №%d %s", type==Type.SHELF?"Полка":"Позиция", number, name);
-    }
-
     public enum Type { SHELF, POSITION }
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -42,13 +37,7 @@ public class Place extends ContainsItems {
 
     private String name;
 
-    public Place(Container container, Type type, int number) {
+    public Place(Container container) {
         this.container = container;
-        this.type = type;
-        this.number = number;
-    }
-    public Place(Container container, Type type, int number, String name) {
-        this(container, type, number);
-        this.name = name;
     }
 }

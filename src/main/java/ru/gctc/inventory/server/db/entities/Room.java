@@ -32,17 +32,7 @@ public class Room extends ContainsItems {
 
     private String name;
 
-    public Room(Floor floor, int number) {
+    public Room(Floor floor) {
         this.floor = floor;
-        this.number = number;
-    }
-    public Room(Floor floor, int number, String name) {
-        this(floor, number);
-        this.name = name;
-    }
-
-    @Override
-    public String toString() {
-        return String.format("Кабинет №%d %s", number, name);
     }
 }

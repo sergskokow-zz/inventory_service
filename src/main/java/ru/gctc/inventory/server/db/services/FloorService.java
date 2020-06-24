@@ -1,45 +1,38 @@
 package ru.gctc.inventory.server.db.services;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
+import ru.gctc.inventory.server.db.entities.Building;
 import ru.gctc.inventory.server.db.entities.Floor;
 import ru.gctc.inventory.server.db.entities.InventoryEntity;
 import ru.gctc.inventory.server.db.repos.FloorRepository;
-import ru.gctc.inventory.server.db.repos.RoomRepository;
 
 import java.util.List;
-import java.util.Optional;
 
 @Service
 public class FloorService extends InventoryEntityService<Floor, FloorRepository> {
-    private RoomRepository roomRepository;
-    @Autowired
-    public void setRoomRepository(RoomRepository roomRepository) {
-        this.roomRepository = roomRepository;
-    }
 
     public FloorService(FloorRepository repository) {
         super(repository);
     }
 
     @Override
-    public List<? extends InventoryEntity> getChildren(InventoryEntity inventoryEntity, int offset, int limit) {
-        return roomRepository.findAllByFloor(inventoryEntity, PageRequest.of(offset, limit)).getContent();
+    public List<Floor> getChildren(InventoryEntity parent, int offset, int limit) {
+        return repository.findAllByBuilding(parent, PageRequest.of(offset, limit)).getContent();
     }
 
     @Override
-    public long getChildCount(InventoryEntity inventoryEntity) {
-        return roomRepository.countAllByFloor(inventoryEntity);
+    public long getChildCount(InventoryEntity parent) {
+        return repository.countAllByBuilding(parent);
     }
 
     @Override
-    public boolean hasChildren(InventoryEntity inventoryEntity) {
-        return roomRepository.existsRoomByFloor(inventoryEntity);
+    public boolean hasChildren(InventoryEntity parent) {
+        return repository.existsFloorByBuilding(parent);
     }
 
     @Override
-    public Optional<InventoryEntity> getParent(Floor inventoryEntity) {
-        return Optional.of(inventoryEntity.getBuilding());
+    public Building getParent(Floor entity) {
+        return entity.getBuilding();
     }
 }

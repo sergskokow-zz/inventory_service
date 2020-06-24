@@ -24,11 +24,6 @@ public class Container extends InventoryEntity {
     @OneToMany(mappedBy = "container", cascade = CascadeType.ALL)
     private List<Place> places = new ArrayList<>();
 
-    @Override
-    public String toString() {
-        return String.format("%s №%d %s", type==Type.CASE?"Шкаф":"Стеллаж", number, description);
-    }
-
     public enum Type { CASE, RACK }
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -42,13 +37,7 @@ public class Container extends InventoryEntity {
 
     private String description;
 
-    public Container(Room room, Type type, int number) {
+    public Container(Room room) {
         this.room = room;
-        this.type = type;
-        this.number = number;
-    }
-    public Container(Room room, Type type, int number, String description) {
-        this(room, type, number);
-        this.description = description;
     }
 }

@@ -10,7 +10,7 @@ import ru.gctc.inventory.server.db.entities.Room;
 public interface RoomRepository extends InventoryRepository<Room> {
     Page<Room> findAllByFloor(InventoryEntity floor, Pageable pageable);
 
-    long countAllByFloor(InventoryEntity floor);
+    int countAllByFloor(InventoryEntity floor);
 
     boolean existsRoomByFloor(InventoryEntity floor);
 }

@@ -1,48 +1,31 @@
 package ru.gctc.inventory.server.db.services;
 
 import ru.gctc.inventory.server.db.entities.InventoryEntity;
-import ru.gctc.inventory.server.db.services.exceptions.EntityAlreadyExistsException;
 import ru.gctc.inventory.server.db.services.exceptions.EntityNotFoundException;
 
 import java.util.List;
 import java.util.Optional;
 
-public interface InventoryService<IE extends InventoryEntity> {
-    IE add(IE inventoryEntity) throws EntityAlreadyExistsException;
+public interface InventoryService<E extends InventoryEntity> {
+    E add(E entity);
 
-    IE edit(IE inventoryEntity) throws EntityNotFoundException;
+    E edit(E entity) throws EntityNotFoundException;
 
-    void delete(IE inventoryEntity);
+    void delete(E entity);
 
-    void delete(long inventoryEntityId) throws EntityNotFoundException;
+    void delete(long entityId) throws EntityNotFoundException;
 
     long count();
 
-    List<IE> getAll(int offset, int limit);
+    List<E> getAll(int offset, int limit);
 
-    Optional<IE> getById(long inventoryEntityId);
+    Optional<E> getById(long entityId);
 
-    List<? extends InventoryEntity> getChildren(InventoryEntity inventoryEntity, int offset, int limit);
+    List<E> getChildren(InventoryEntity parent, int offset, int limit);
 
-    default List<? extends InventoryEntity> getChildren(long inventoryEntityId, int offset, int limit) throws EntityNotFoundException {
-        return getChildren(getById(inventoryEntityId).orElseThrow(), offset, limit);
-    }
+    long getChildCount(InventoryEntity parent);
 
-    long getChildCount(InventoryEntity inventoryEntity);
+    boolean hasChildren(InventoryEntity parent);
 
-    default long getChildCount(long inventoryEntityId) throws EntityNotFoundException {
-        return getChildCount(getById(inventoryEntityId).orElseThrow()); //TODO exception
-    }
-
-    boolean hasChildren(InventoryEntity inventoryEntity);
-
-    default boolean hasChildren(long inventoryEntityId) throws EntityNotFoundException {
-        return hasChildren(getById(inventoryEntityId).orElseThrow()); // TODO exception
-    }
-
-    Optional<InventoryEntity> getParent(IE inventoryEntity);
-
-    default Optional<InventoryEntity> getParent(long inventoryEntityId) throws EntityNotFoundException {
-        return getParent(getById(inventoryEntityId).orElseThrow()); // TODO exception
-    }
+    InventoryEntity getParent(E entity);
 }

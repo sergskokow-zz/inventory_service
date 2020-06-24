@@ -4,6 +4,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.hibernate.annotations.ColumnDefault;
+import org.hibernate.annotations.CreationTimestamp;
 
 import javax.persistence.*;
 import javax.validation.constraints.Min;
@@ -41,11 +42,6 @@ public class Item extends InventoryEntity {
     @Min(0L)
     private BigDecimal cost;
 
-    @Override
-    public String toString() {
-        return name;
-    }
-
     public enum Status { IN_USE, WRITTEN_OFF, TRANSFERRED }
     @Enumerated(value = EnumType.STRING)
     @Column(nullable = false)
@@ -60,6 +56,8 @@ public class Item extends InventoryEntity {
     private String number;
 
     @Temporal(TemporalType.TIMESTAMP)
+    @Column(nullable = false)
+    @CreationTimestamp
     private Date inventory;
 
     @Temporal(TemporalType.DATE)
@@ -74,19 +72,18 @@ public class Item extends InventoryEntity {
     @Temporal(TemporalType.DATE)
     private Date commissioning;
 
+    // TODO move this
     @Lob
     @Basic(fetch = FetchType.LAZY)
     private byte[] photo;
 
-    public Item(Place place, String name) {
+    public Item(Place place) {
         this.place = place;
         this.room = null;
-        this.name = name;
     }
 
-    public Item(Room room, String name) {
+    public Item(Room room) {
         this.place = null;
         this.room = room;
-        this.name = name;
     }
 }

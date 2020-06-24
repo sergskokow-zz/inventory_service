@@ -27,13 +27,7 @@ public class Floor extends InventoryEntity {
     @NotNull
     private Integer number;
 
-    public Floor(Building building, int number) {
+    public Floor(Building building) {
         this.building = building;
-        this.number = number;
-    }
-
-    @Override
-    public String toString() {
-        return "Этаж №"+number.toString();
     }
 }
