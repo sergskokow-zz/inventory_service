@@ -4,4 +4,5 @@ public class EntityNotFoundException extends Exception {
     public EntityNotFoundException(String type, long id) {
         super(String.format("Entity %s #%d not found.", type, id));
     }
+    public EntityNotFoundException() { super(); }
 }

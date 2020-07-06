@@ -27,11 +27,10 @@ import ru.gctc.inventory.server.db.entities.InventoryEntity;
 import ru.gctc.inventory.server.db.entities.Item;
 import ru.gctc.inventory.server.vaadin.providers.InventoryEntityDataProvider;
 import ru.gctc.inventory.server.vaadin.providers.ItemsDataProviderFactory;
-import ru.gctc.inventory.server.vaadin.utils.CommonFilterFieldListener;
-import ru.gctc.inventory.server.vaadin.utils.InventoryEntityNames;
-import ru.gctc.inventory.server.vaadin.utils.TreeSelectionListener;
+import ru.gctc.inventory.server.vaadin.utils.*;
 
 import java.text.DecimalFormat;
+import java.util.Set;
 
 @Route(value = "",layout = MainView.class)
 @Component
@@ -81,8 +80,8 @@ public class Inventory extends Div {
         /* GRID */
 
         /* for search results */
-        var pathColumn = grid.addColumn(Item::getName).setHeader("Местонахождение");
-        pathColumn.setVisible(false);
+        /*var pathColumn = grid.addColumn(Item::getName).setHeader("Местонахождение");
+        pathColumn.setVisible(false);*/
 
         /* common */
         var nameColumn = grid.addColumn(Item::getName, "name").setHeader("Наименование");
@@ -95,11 +94,7 @@ public class Inventory extends Div {
                 return moneyFormat.format(item.getCost());
             else return null;
         },"cost").setHeader("Стоимость, ₽");
-        grid.addColumn(item -> switch (item.getStatus()) {
-            case IN_USE -> "В эксплуатации";
-            case WRITTEN_OFF -> "Списано";
-            case TRANSFERRED -> "Передано на отв. хранение";
-        }, "status").setHeader("Статус");
+        grid.addColumn(item -> InventoryEntityNames.itemStatus.get(item.getStatus()), "status").setHeader("Статус");
         /* numbers */
         var waybillColumn = grid.addColumn(Item::getWaybill,"waybill").setHeader("№ накладной получения");
         var inventoryColumn = grid.addColumn(Item::getNumber,"number").setHeader("Инвентарный номер");
@@ -155,37 +150,8 @@ public class Inventory extends Div {
         splitLayout.setSplitterPosition(25.0);
 
         /* CONTEXT MENU */
-        var contextMenu = grid.addContextMenu();
-
-        var addItemMenu = contextMenu.addItem(new HorizontalLayout(new Icon(VaadinIcon.PLUS),new Label("Добавить...")));
-        addItemMenu.addMenuItemClickListener(event -> {
-            if(tree.getSelectedItems().iterator().hasNext())
-                editor.show(Editor.Mode.ADD, tree.getSelectedItems().iterator().next());
-            else
-                editor.show(Editor.Mode.ADD, null);
-        });
-
-        var editItemMenu = contextMenu.addItem(new HorizontalLayout(new Icon(VaadinIcon.EDIT),new Label("Редактировать...")));
-        editItemMenu.addMenuItemClickListener(event -> editor.show(Editor.Mode.EDIT, event.getItem().orElse(null)));
-
-        contextMenu.add(new Hr());
-        var reportMenu = contextMenu.addItem(new HorizontalLayout(new Icon(VaadinIcon.FILE_TEXT),new Label("Подготовить отчёт")));
-        var reportFormatsMenu = reportMenu.getSubMenu();
-
-        reportFormatsMenu.addItem("Microsoft Word  (*.docx)").addMenuItemClickListener(event -> {
-            // TODO docx reports
-        });
-        reportFormatsMenu.addItem("Microsoft Excel (*.xlsx)").addMenuItemClickListener(event -> {
-            // TODO xlsx reports
-        });
-
-
-        var qrCodeMenu = contextMenu.addItem(new HorizontalLayout(new Icon(VaadinIcon.QRCODE),new Label("QR-коды..."))).getSubMenu();
-
-        qrCodeMenu.addItem("Скачать QR-коды для печати").addMenuItemClickListener(event -> {
-            // TODO qr
-        });
-        qrCodeMenu.add(new Hr());
+        var gridContextMenu = grid.addContextMenu();
+        var treeContextMenu = tree.addContextMenu();
 
         /* copy link */
         TextField linkField = new TextField("Ссылка на элемент");
@@ -198,78 +164,144 @@ public class Inventory extends Div {
         HorizontalLayout linkLayout = new HorizontalLayout();
         linkLayout.addAndExpand(linkField, clipboardHelper);
         linkLayout.setAlignItems(FlexComponent.Alignment.END);
-        qrCodeMenu.add(linkLayout);
 
-
-        contextMenu.add(new Hr());
-        var deleteMenu = contextMenu.addItem(new HorizontalLayout(new Icon(VaadinIcon.TRASH),new Label("Удалить")));
-        deleteMenu.addMenuItemClickListener(event -> deleteConfirmDialog.show(grid.getSelectedItems()));
-
-        contextMenu.addGridContextMenuOpenedListener(event -> {
-            event.getItem().ifPresent(item -> { // Right-click selection
-                linkField.setValue(InventoryEntityNames.get(item)); // TODO links
-                if(!grid.getSelectedItems().contains(item))
-                    grid.select(item);
-            });
-            var selectedItems = grid.getSelectedItems();
-            if(selectedItems.isEmpty()) {
-                addItemMenu.setVisible(true);
-                editItemMenu.setVisible(false);
-                reportMenu.setVisible(true);
-                linkLayout.setVisible(false);
-                deleteMenu.setVisible(false);
-            } else if(selectedItems.size()==1) {
-                addItemMenu.setVisible(false);
-                editItemMenu.setVisible(true);
-                reportMenu.setVisible(true);
-                linkLayout.setVisible(true);
-                deleteMenu.setVisible(true);
-            } else {
-                addItemMenu.setVisible(false);
-                editItemMenu.setVisible(false);
-                reportMenu.setVisible(true);
-                linkLayout.setVisible(false);
-                deleteMenu.setVisible(true);
-            }
-        });
-
-        /* TREE CONTEXT MENU */
-        // TODO fix duplication!
-        var treeContextMenu = tree.addContextMenu();
-        var addContainerMenu = treeContextMenu.addItem("Добавить...");
-        addContainerMenu.addMenuItemClickListener(event -> {
-            if(tree.getSelectedItems().iterator().hasNext())
-                editor.show(Editor.Mode.ADD, tree.getSelectedItems().iterator().next());
+        /* item listeners */
+        GridContextMenuHelper addListener = event -> {
+            var i = tree.getSelectedItems().iterator();
+            if(i.hasNext())
+                editor.show(Editor.Mode.ADD, i.next());
             else
                 editor.show(Editor.Mode.ADD, null);
-        });
-        var editContainerMenu = treeContextMenu.addItem("Редактировать...");
-        editContainerMenu.addMenuItemClickListener(event -> editor.show(Editor.Mode.EDIT, event.getItem().orElse(null)));
-        treeContextMenu.addItem("Подготовить отчёт").addMenuItemClickListener(event -> {
-            // TODO reports
-        });
-        treeContextMenu.addItem("Скачать QR-коды для печати").addMenuItemClickListener(event -> {
-            // TODO qr
-        });
-        var deleteContainerMenu = treeContextMenu.addItem("Удалить");
-        deleteContainerMenu.addMenuItemClickListener(event -> deleteConfirmDialog.show(tree.getSelectedItems()));
-        treeContextMenu.addGridContextMenuOpenedListener(event -> {
-            event.getItem().ifPresent(item -> { // Right-click selection
-                if(!tree.getSelectedItems().contains(item))
-                    tree.select(item);
+        };
+        GridContextMenuHelper editListener = event ->
+                editor.show(Editor.Mode.EDIT, (InventoryEntity) event.getItem().orElse(null));
+        GridContextMenuHelper deleteListener = event ->
+                deleteConfirmDialog.show((Set<? extends InventoryEntity>) event.getGrid().getSelectedItems());
+
+        /* make menu */
+        var treeAddButton = treeContextMenu.addItem(
+                new HorizontalLayout(VaadinIcon.PLUS.create(),new Label("Добавить...")), addListener::onMenuClick);
+        var treeEditButton = treeContextMenu.addItem(
+                new HorizontalLayout(VaadinIcon.EDIT.create(),new Label("Редактировать...")), editListener::onMenuClick);
+        treeContextMenu.add(new Hr());
+        var treeReportButton = treeContextMenu.addItem(
+                new HorizontalLayout(VaadinIcon.FILE_TEXT.create(),new Label("Подготовить отчёт")));
+        var treeReportMenu = treeReportButton.getSubMenu();
+        var treeDocxReportButton = treeReportMenu.addItem(
+                new HorizontalLayout(VaadinIcon.FILE_TEXT_O.create(),new Label("Microsoft Word (*.docx)")));
+        treeDocxReportButton.addMenuItemClickListener(event -> {
+            event.getItem().ifPresent(entity -> {
+                ReportRedirect.reportByParent(getUI().get().getPage(), "docx", entity);
             });
-            if(tree.getSelectedItems().isEmpty()) {
-                addContainerMenu.setVisible(true);
-                editContainerMenu.setVisible(false);
-                deleteContainerMenu.setVisible(false);
-            } else if(tree.getSelectedItems().size()==1) {
-                addContainerMenu.setVisible(true);
-                editContainerMenu.setVisible(true);
-                deleteContainerMenu.setVisible(true);
+        });
+        var treeXlsxReportButton = treeReportMenu.addItem(
+                new HorizontalLayout(VaadinIcon.FILE_TABLE.create(),new Label("Microsoft Excel (*.xlsx)")));
+        treeXlsxReportButton.addMenuItemClickListener(event -> {
+            event.getItem().ifPresent(entity -> {
+                ReportRedirect.reportByParent(getUI().get().getPage(), "xlsx", entity);
+            });
+        });
+        var treeQrMenu = treeContextMenu.addItem(
+                new HorizontalLayout(VaadinIcon.QRCODE.create(),new Label("QR-коды...")));// TODO qr
+        treeContextMenu.add(new Hr());
+        var treeDeleteButton = treeContextMenu.addItem(
+                new HorizontalLayout(VaadinIcon.TRASH.create(),new Label("Удалить")), deleteListener::onMenuClick);
+
+        var gridOpenButton = gridContextMenu.addItem(
+                new HorizontalLayout(VaadinIcon.PICTURE.create(),new Label("Просмотр")));// TODO viewer
+        var gridAddButton = gridContextMenu.addItem(
+                new HorizontalLayout(VaadinIcon.PLUS.create(),new Label("Добавить...")), addListener::onMenuClick);
+        var gridEditButton = gridContextMenu.addItem(
+                new HorizontalLayout(VaadinIcon.EDIT.create(),new Label("Редактировать...")), editListener::onMenuClick);
+        gridContextMenu.add(new Hr());
+        var gridReportButton = gridContextMenu.addItem(
+                new HorizontalLayout(VaadinIcon.FILE_TEXT.create(),new Label("Подготовить отчёт")));
+        var gridReportMenu = gridReportButton.getSubMenu();
+        var gridDocxReportButton = gridReportMenu.addItem(
+                new HorizontalLayout(VaadinIcon.FILE_TEXT_O.create(),new Label("Microsoft Word (*.docx)")));
+        gridDocxReportButton.addMenuItemClickListener(event -> {
+            var selectedItems = grid.getSelectedItems();
+            var selectedParent = tree.getSelectedItems();
+            if(!selectedItems.isEmpty())
+                ReportRedirect.reportByItems(getUI().get().getPage(), "docx", selectedItems);
+            else if(!selectedParent.isEmpty())
+                ReportRedirect.reportByParent(getUI().get().getPage(), "docx", selectedParent.iterator().next());
+        });
+        var gridXlsxReportButton = gridReportMenu.addItem(
+                new HorizontalLayout(VaadinIcon.FILE_TABLE.create(),new Label("Microsoft Excel (*.xlsx)")));
+        gridXlsxReportButton.addMenuItemClickListener(event -> {
+            var selectedItems = grid.getSelectedItems();
+            var selectedParent = tree.getSelectedItems();
+            if(!selectedItems.isEmpty())
+                ReportRedirect.reportByItems(getUI().get().getPage(), "xlsx", selectedItems);
+            else if(!selectedParent.isEmpty())
+                ReportRedirect.reportByParent(getUI().get().getPage(), "xlsx", selectedParent.iterator().next());
+        });
+        var gridQrMenu = gridContextMenu.addItem(
+                new HorizontalLayout(VaadinIcon.QRCODE.create(),new Label("QR-коды..."))).getSubMenu();
+        var gridQrDownload = gridQrMenu.addItem(
+                new HorizontalLayout(VaadinIcon.DOWNLOAD.create(),new Label("Скачать QR-коды")));// TODO qr
+        gridQrMenu.add(new Hr());
+        gridQrMenu.add(linkLayout);
+        gridContextMenu.add(new Hr());
+        var gridDeleteButton = gridContextMenu.addItem(
+                new HorizontalLayout(VaadinIcon.TRASH.create(),new Label("Удалить")), deleteListener::onMenuClick);
+
+
+        /* menu listeners */
+        treeContextMenu.addGridContextMenuOpenedListener(event -> {
+            event.getItem().ifPresent(item -> GridContextMenuHelper.rightClickSelection(tree, item));
+            var selected = tree.getSelectedItems();
+            if(selected.isEmpty()) {
+                treeAddButton.setVisible(true);
+                treeEditButton.setVisible(false);
+                treeReportButton.setVisible(false);
+                treeQrMenu.setVisible(false);
+                treeDeleteButton.setVisible(false);
+            }
+            else if(selected.size()==1) {
+                treeAddButton.setVisible(true);
+                treeEditButton.setVisible(true);
+                treeReportButton.setVisible(true);
+                treeQrMenu.setVisible(true);
+                treeDeleteButton.setVisible(true);
+            }
+            else {
+                treeAddButton.setVisible(false);
+                treeEditButton.setVisible(false);
+                treeReportButton.setVisible(true);
+                treeQrMenu.setVisible(true);
+                treeDeleteButton.setVisible(true);
+            }
+        });
+        gridContextMenu.addGridContextMenuOpenedListener(event -> {
+            event.getItem().ifPresent(item -> GridContextMenuHelper.rightClickSelection(grid, item));
+            var selected = grid.getSelectedItems();
+            if (selected.isEmpty()) {
+                gridOpenButton.setVisible(false);
+                gridAddButton.setVisible(true);
+                gridEditButton.setVisible(false);
+                gridReportButton.setVisible(true);
+                gridQrDownload.setVisible(true);
+                linkLayout.setVisible(false);
+                gridDeleteButton.setVisible(false);
+            } else if (selected.size() == 1) {
+                gridOpenButton.setVisible(true);
+                gridAddButton.setVisible(false);
+                gridEditButton.setVisible(true);
+                gridReportButton.setVisible(true);
+                gridQrDownload.setVisible(true);
+                linkLayout.setVisible(true);
+                linkField.setValue(InventoryEntityNames.get(selected.iterator().next())); // TODO links
+                gridDeleteButton.setVisible(true);
             } else {
-                addContainerMenu.setVisible(false);
-                editContainerMenu.setVisible(false);
-                deleteContainerMenu.setVisible(true);
+                gridOpenButton.setVisible(false);
+                gridAddButton.setVisible(false);
+                gridEditButton.setVisible(false);
+                gridReportButton.setVisible(true);
+                gridQrDownload.setVisible(true);
+                linkLayout.setVisible(false);
+                gridDeleteButton.setVisible(true);
             }
         });
     }

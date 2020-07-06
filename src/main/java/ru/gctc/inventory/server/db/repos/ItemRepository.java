@@ -8,6 +8,8 @@ import org.springframework.stereotype.Repository;
 import ru.gctc.inventory.server.db.entities.*;
 import ru.gctc.inventory.server.db.services.dto.Filters;
 
+import java.util.List;
+
 @Repository
 public interface ItemRepository extends InventoryRepository<Item> {
 
@@ -62,4 +64,34 @@ public interface ItemRepository extends InventoryRepository<Item> {
     Page<Item> findByPlace(@Param("place") Place place,
                            @Param("filters") Filters filters,
                            Pageable pageable);
+
+    /* eager loading */
+
+    @Query("SELECT i FROM Item i " +
+            "LEFT JOIN i.place p " +
+            "LEFT JOIN p.container c " +
+            "JOIN Room r ON (c.room=r) OR (i.room=r) " +
+            "JOIN r.floor f " +
+            "WHERE f.building=:building")
+    List<Item> findByBuilding(@Param("building") Building building);
+
+    @Query("SELECT i FROM Item i " +
+            "LEFT JOIN i.place p " +
+            "LEFT JOIN p.container c " +
+            "JOIN Room r ON (c.room=r) OR (i.room=r) " +
+            "WHERE r.floor=:floor")
+    List<Item> findByFloor(@Param("floor") Floor floor);
+
+    @Query("SELECT i FROM Item i " +
+            "LEFT JOIN i.place p " +
+            "LEFT JOIN p.container c " +
+            "WHERE ((c.room=:room) OR (i.room=:room))")
+    List<Item> findByRoom(@Param("room") Room room);
+
+    @Query("SELECT i FROM Item i " +
+            "JOIN i.place p " +
+            "WHERE p.container=:container")
+    List<Item> findByContainer(@Param("container") Container container);
+
+    List<Item> findByPlace(Place place);
 }

@@ -20,7 +20,7 @@ repositories {
 }
 
 ext {
-    set('vaadinVersion', "14.2.1")
+    set('vaadinVersion', "14.2.3")
 }
 
 dependencies {
@@ -39,8 +39,9 @@ dependencies {
     compile group: 'org.vaadin.barcodes',    name: 'barcode-bwipjs',        version: '1.0.0'
     compile group: 'com.flowingcode.addons', name: 'iron-icons',            version: '2.0.1'
     compile group: 'org.vaadin.olli',        name: 'clipboardhelper',       version: '1.1.2'
-    compile group: 'org.apache.poi',         name: 'poi',                   version: '4.1.2'
+    compile group: 'org.apache.poi',         name: 'poi-ooxml',             version: '4.1.2'
     compile group: 'de.codecamp.vaadin',     name: 'vaadin-message-dialog', version: '1.0.0'
+    compile group: 'org.vaadin.olli',        name: 'file-download-wrapper', version: '3.0.1'
 }
 
 dependencyManagement {

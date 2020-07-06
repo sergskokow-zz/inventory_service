@@ -66,27 +66,6 @@ public class Editor extends Dialog {
 
     public enum Mode { ADD, EDIT }
 
-    private final Map<Class<? extends InventoryEntity>, String> entityTypes = Map.of(
-            Building.class, "Здание",
-            Floor.class,    "Этаж",
-            Room.class,     "Кабинет",
-            Container.class,"Шкаф/стеллаж",
-            Place.class,    "Полка/позиция",
-            Item.class,     "Объект"
-    );
-    private final Map<Container.Type, String> containerTypes = Map.of(
-            Container.Type.CASE, "Шкаф",
-            Container.Type.RACK, "Стеллаж"
-    );
-    private final Map<Place.Type, String> placeTypes = Map.of(
-            Place.Type.SHELF,   "Полка",
-            Place.Type.POSITION,"Позиция"
-    );
-    private final Map<Item.Status, String> itemStatus = Map.of(
-            Item.Status.IN_USE, "В эксплуатации",
-            Item.Status.WRITTEN_OFF, "Списано",
-            Item.Status.TRANSFERRED, "Передано на отв. хранение"
-    );
     private final Map<Integer, FormLayout.ResponsiveStep> columns = Map.of(
             1, new FormLayout.ResponsiveStep("0px",1),
             2, new FormLayout.ResponsiveStep("0px",2),
@@ -197,7 +176,7 @@ public class Editor extends Dialog {
         /* CONTAINER */
 
         containerType = new ComboBox<>("Шкаф/стеллаж");
-        containerType.setItemLabelGenerator(containerTypes::get);
+        containerType.setItemLabelGenerator(InventoryEntityNames.containerTypes::get);
         containerType.setItems(Container.Type.values());
         containerType.setValue(Container.Type.CASE);
         containerType.setRequired(true);
@@ -205,7 +184,7 @@ public class Editor extends Dialog {
         /* PLACE */
 
         placeType = new ComboBox<>("Полка/позиция");
-        placeType.setItemLabelGenerator(placeTypes::get);
+        placeType.setItemLabelGenerator(InventoryEntityNames.placeTypes::get);
         placeType.setItems(Place.Type.values());
         placeType.setValue(Place.Type.SHELF);
         placeType.setRequired(true);
@@ -236,7 +215,7 @@ public class Editor extends Dialog {
         costField.addThemeVariants(TextFieldVariant.LUMO_ALIGN_RIGHT);
 
         itemStatusField = new ComboBox<>("Статус объекта");
-        itemStatusField.setItemLabelGenerator(itemStatus::get);
+        itemStatusField.setItemLabelGenerator(InventoryEntityNames.itemStatus::get);
         itemStatusField.setItems(Item.Status.values());
         itemStatusField.setValue(Item.Status.IN_USE);
         itemStatusField.setRequired(true);
@@ -405,7 +384,7 @@ public class Editor extends Dialog {
             if(numberField.isEmpty())
                 throw new RequiredFieldNotFilledException();
             room.setNumber(numberField.getValue());
-            room.setName(nameField.getValue());
+            room.setName(getNullable(nameField.getValue()));
         } else if(entity instanceof Container) {
             Container container = (Container) entity;
             container.setRoom(roomField.getValue());
@@ -413,7 +392,7 @@ public class Editor extends Dialog {
             if(numberField.isEmpty())
                 throw new RequiredFieldNotFilledException();
             container.setNumber(numberField.getValue());
-            container.setDescription(nameField.getValue());
+            container.setDescription(getNullable(nameField.getValue()));
         } else if(entity instanceof Place) {
             Place place = (Place) entity;
             place.setContainer(containerField.getValue());
@@ -421,7 +400,7 @@ public class Editor extends Dialog {
             if(numberField.isEmpty())
                 throw new RequiredFieldNotFilledException();
             place.setNumber(numberField.getValue());
-            place.setName(nameField.getValue());
+            place.setName(getNullable(nameField.getValue()));
         } else if(entity instanceof Item) {
             Item item = (Item) entity;
             if(placeField.isEmpty() && roomField.isEmpty())
@@ -438,19 +417,26 @@ public class Editor extends Dialog {
             if(nameField.isEmpty()||countField.isEmpty()||itemStatusField.isEmpty())
                 throw new RequiredFieldNotFilledException();
             item.setName(nameField.getValue());
-            item.setDescription(descriptionField.getValue());
+            item.setDescription(getNullable(descriptionField.getValue()));
             item.setCount(countField.getValue());
             item.setCost(costField.getValue());
             item.setStatus(itemStatusField.getValue());
-            item.setWaybill(waybillField.getValue());
-            item.setFactory(factoryField.getValue());
-            item.setNumber(inventoryNumberField.getValue());
+            item.setWaybill(getNullable(waybillField.getValue()));
+            item.setFactory(getNullable(factoryField.getValue()));
+            item.setNumber(getNullable(inventoryNumberField.getValue()));
             item.setIncoming(DateCast.toDate(incomingDateField.getValue()));
             item.setWriteoff(DateCast.toDate(writeoffDateField.getValue()));
             item.setSheduled_writeoff(DateCast.toDate(sheduledWriteoffDateField.getValue()));
             item.setCommissioning(DateCast.toDate(commissioningDateField.getValue()));
             // TODO photos
         }
+    }
+
+    private static String getNullable(String s){
+        if(s.isBlank())
+            return null;
+        else
+            return s;
     }
 
     private InventoryEntity create(InventoryEntity parent, Class<? extends InventoryEntity> targetType)

@@ -2,6 +2,8 @@ package ru.gctc.inventory.server.vaadin.utils;
 
 import ru.gctc.inventory.server.db.entities.*;
 
+import java.util.Map;
+
 public class InventoryEntityNames {
     public static String get(InventoryEntity entity) {
         if(entity instanceof Building)
@@ -32,4 +34,29 @@ public class InventoryEntityNames {
             return ((Item) entity).getName();
         return null;
     }
+
+    public static final Map<Class<? extends InventoryEntity>, String> entityTypes = Map.of(
+            Building.class, "Здание",
+            Floor.class,    "Этаж",
+            Room.class,     "Кабинет",
+            Container.class,"Шкаф/стеллаж",
+            Place.class,    "Полка/позиция",
+            Item.class,     "Объект"
+    );
+
+    public static final Map<Container.Type, String> containerTypes = Map.of(
+            Container.Type.CASE, "Шкаф",
+            Container.Type.RACK, "Стеллаж"
+    );
+
+    public static final Map<Place.Type, String> placeTypes = Map.of(
+            Place.Type.SHELF,   "Полка",
+            Place.Type.POSITION,"Позиция"
+    );
+
+    public static final Map<Item.Status, String> itemStatus = Map.of(
+            Item.Status.IN_USE, "В эксплуатации",
+            Item.Status.WRITTEN_OFF, "Списано",
+            Item.Status.TRANSFERRED, "Передано на отв. хранение"
+    );
 }

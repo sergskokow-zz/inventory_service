@@ -78,6 +78,20 @@ public class ItemService extends InventoryEntityService<Item,ItemRepository> {
         return 0;
     }
 
+    public List<Item> getAllChildren(InventoryEntity parent) {
+        if(parent instanceof Building)
+            return repository.findByBuilding((Building) parent);
+        if(parent instanceof Floor)
+            return repository.findByFloor((Floor) parent);
+        if(parent instanceof Room)
+            return repository.findByRoom((Room) parent);
+        if(parent instanceof Container)
+            return repository.findByContainer((Container) parent);
+        if(parent instanceof Place)
+            return repository.findByPlace((Place)parent);
+        return null;
+    }
+
     // TODO delete this
     public List<InventoryEntity> getPath(Item item) {
         LinkedList<InventoryEntity> path = new LinkedList<>();
@@ -97,5 +111,9 @@ public class ItemService extends InventoryEntityService<Item,ItemRepository> {
         path.addFirst(f);
         path.addFirst(b);
         return path;
+    }
+
+    public Iterable<Item> getAllByIds(Iterable<Long> itemIds) {
+        return repository.findAllById(itemIds);
     }
 }
