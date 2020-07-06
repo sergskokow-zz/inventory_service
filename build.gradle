@@ -56,4 +56,5 @@ test {
 
 vaadin {
     pnpmEnable = true
+    productionMode=true
 }
