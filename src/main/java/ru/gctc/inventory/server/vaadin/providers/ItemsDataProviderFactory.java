@@ -81,4 +81,26 @@ public class ItemsDataProviderFactory {
         filteredDataProvider.setFilter(filters);
         return filteredDataProvider;
     }
+
+    private ConfigurableFilterDataProvider<Item, Void, Filters> writeoffItemsDataProvider;
+
+    public ConfigurableFilterDataProvider<Item, Void, Filters>
+    getWriteoffItemsDataProvider(Filters filters) {
+
+        if(writeoffItemsDataProvider==null) {
+            writeoffItemsDataProvider = DataProvider.fromFilteringCallbacks(
+                    (Query<Item, Filters> query) ->
+                            service.getWriteoffItems(
+                                    query.getOffset(),
+                                    query.getLimit(),
+                                    query.getFilter().orElse(new Filters()),
+                                    SortFactory.get(query.getSortOrders().iterator()))
+                                    .stream(),
+                    query ->
+                            service.getWriteoffItemsCount(query.getFilter().orElse(new Filters())))
+                    .withConfigurableFilter();
+        }
+        writeoffItemsDataProvider.setFilter(filters);
+        return writeoffItemsDataProvider;
+    }
 }

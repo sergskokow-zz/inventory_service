@@ -94,4 +94,10 @@ public interface ItemRepository extends InventoryRepository<Item> {
     List<Item> findByContainer(@Param("container") Container container);
 
     List<Item> findByPlace(Place place);
+
+    /* writeoff items */
+    @Query("SELECT i FROM Item i " +
+            "WHERE i.status='IN_USE' " +
+            "AND (i.writeoff < CURRENT_DATE OR i.sheduled_writeoff < CURRENT_DATE)" + filtersQuery)
+    Page<Item> findWriteoffItems(@Param("filters") Filters filters, Pageable pageable);
 }

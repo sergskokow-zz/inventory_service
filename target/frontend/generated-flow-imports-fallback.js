@@ -1,10 +1,3 @@
-function addCssBlock(block) {
- const tpl = document.createElement('template');
- tpl.innerHTML = block;
- document.head.appendChild(tpl.content);
-}
-
-import $css_0 from '@vaadin/flow-frontend/src/barcode.css';
 import '@polymer/iron-icons/av-icons.js';
 import '@polymer/iron-icons/communication-icons.js';
 import '@polymer/iron-icons/device-icons.js';
@@ -22,7 +15,6 @@ import '@vaadin/flow-frontend/iron-file-icons/file-icons.js';
 import '@vaadin/flow-frontend/ironListConnector-es6.js';
 import '@vaadin/flow-frontend/ironListStyles.js';
 import '@vaadin/flow-frontend/menubarConnector.js';
-import '@vaadin/flow-frontend/src/barcode.js';
 import '@vaadin/flow-frontend/timepickerConnector.js';
 import '@vaadin/vaadin-accordion/theme/lumo/vaadin-accordion.js';
 import '@vaadin/vaadin-app-layout/theme/lumo/vaadin-drawer-toggle.js';
@@ -42,7 +34,6 @@ import '@vaadin/vaadin-grid-pro/theme/lumo/vaadin-grid-pro.js';
 import '@vaadin/vaadin-item/theme/lumo/vaadin-item.js';
 import '@vaadin/vaadin-list-box/theme/lumo/vaadin-list-box.js';
 import '@vaadin/vaadin-login/theme/lumo/vaadin-login-form.js';
-import '@vaadin/vaadin-login/theme/lumo/vaadin-login-overlay.js';
 import '@vaadin/vaadin-menu-bar/theme/lumo/vaadin-menu-bar.js';
 import '@vaadin/vaadin-ordered-layout/vaadin-scroller.js';
 import '@vaadin/vaadin-progress-bar/theme/lumo/vaadin-progress-bar.js';
@@ -56,6 +47,3 @@ import '@vaadin/vaadin-time-picker/theme/lumo/vaadin-time-picker.js';
 import '@vaadin/vaadin-upload/src/vaadin-upload-file.js';
 import '@vaadin/flow-frontend/ironListConnector.js';
 import '@vaadin/flow-frontend/selectConnector.js';
-
-addCssBlock(`<custom-style><style>${$css_0}</style></custom-style>`);
-

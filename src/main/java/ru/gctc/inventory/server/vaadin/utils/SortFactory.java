@@ -5,7 +5,7 @@ import org.springframework.data.domain.Sort;
 
 import java.util.Iterator;
 
-public class SortFactory {
+public abstract class SortFactory {
     public static Sort get(Iterator<QuerySortOrder> i) {
         if(i.hasNext()) {
             QuerySortOrder order = i.next();

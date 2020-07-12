@@ -2,6 +2,14 @@ const div = document.createElement('div');
 div.innerHTML = '<custom-style><style include="lumo-color lumo-typography"></style></custom-style>';
 document.head.insertBefore(div.firstElementChild, document.head.firstChild);
 
+function addCssBlock(block) {
+ const tpl = document.createElement('template');
+ tpl.innerHTML = block;
+ document.head.appendChild(tpl.content);
+}
+
+import $css_0 from 'Frontend/my-styles/viewer.css';
+import $css_1 from '@vaadin/flow-frontend/src/barcode.css';
 import '@polymer/iron-icon/iron-icon.js';
 import '@polymer/iron-icons/iron-icons.js';
 import '@vaadin/flow-frontend/clipboard-helper.js';
@@ -11,6 +19,7 @@ import '@vaadin/flow-frontend/datepickerConnector.js';
 import '@vaadin/flow-frontend/dndConnector-es6.js';
 import '@vaadin/flow-frontend/flow-component-renderer.js';
 import '@vaadin/flow-frontend/gridConnector-es6.js';
+import '@vaadin/flow-frontend/src/barcode.js';
 import '@vaadin/flow-frontend/vaadin-big-decimal-field.js';
 import '@vaadin/flow-frontend/vaadin-grid-flow-selection-column.js';
 import '@vaadin/vaadin-app-layout/theme/lumo/vaadin-app-layout.js';
@@ -28,6 +37,7 @@ import '@vaadin/vaadin-grid/theme/lumo/vaadin-grid-sorter.js';
 import '@vaadin/vaadin-grid/theme/lumo/vaadin-grid-tree-toggle.js';
 import '@vaadin/vaadin-grid/theme/lumo/vaadin-grid.js';
 import '@vaadin/vaadin-icons/vaadin-icons.js';
+import '@vaadin/vaadin-login/theme/lumo/vaadin-login-overlay.js';
 import '@vaadin/vaadin-lumo-styles/color.js';
 import '@vaadin/vaadin-lumo-styles/icons.js';
 import '@vaadin/vaadin-lumo-styles/sizing.js';
@@ -49,6 +59,9 @@ import '@vaadin/flow-frontend/comboBoxConnector.js';
 import '@vaadin/flow-frontend/contextMenuConnector.js';
 import '@vaadin/flow-frontend/dndConnector.js';
 import '@vaadin/flow-frontend/gridConnector.js';
+
+addCssBlock(`<custom-style><style>${$css_0}</style></custom-style>`);
+addCssBlock(`<custom-style><style>${$css_1}</style></custom-style>`);
 
 var scripts = document.getElementsByTagName('script');
 var thisScript;

@@ -1,5 +1,6 @@
 package ru.gctc.inventory.server.db.entities;
 
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -17,6 +18,7 @@ import java.util.Date;
 @Getter
 @Setter
 @NoArgsConstructor
+@EqualsAndHashCode(callSuper = false)
 public class Item extends InventoryEntity {
     @ManyToOne
     @JoinColumn(name = "place_id")
@@ -72,10 +74,8 @@ public class Item extends InventoryEntity {
     @Temporal(TemporalType.DATE)
     private Date commissioning;
 
-    // TODO move this
-    @Lob
-    @Basic(fetch = FetchType.LAZY)
-    private byte[] photo;
+    @OneToOne(mappedBy = "item")
+    private Photo photo;
 
     public Item(Place place) {
         this.place = place;

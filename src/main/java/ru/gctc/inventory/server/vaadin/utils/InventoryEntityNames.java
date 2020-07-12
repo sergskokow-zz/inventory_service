@@ -4,7 +4,7 @@ import ru.gctc.inventory.server.db.entities.*;
 
 import java.util.Map;
 
-public class InventoryEntityNames {
+public abstract class InventoryEntityNames {
     public static String get(InventoryEntity entity) {
         if(entity instanceof Building)
             return ((Building) entity).getName();

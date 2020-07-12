@@ -15,19 +15,19 @@ import ru.gctc.inventory.server.vaadin.providers.ItemsDataProviderFactory;
 import java.util.List;
 
 @Component
-public class CommonFilterFieldListener {
+public class CommonFilterFieldListenerFactory {
     private final ItemsDataProviderFactory factory;
     @Autowired
-    public CommonFilterFieldListener(ItemsDataProviderFactory factory) {
+    public CommonFilterFieldListenerFactory(ItemsDataProviderFactory factory) {
         this.factory = factory;
     }
 
-    public void wire(TreeGrid<InventoryEntity> tree,
-                          Grid<Item> grid,
-                          TextField nameField,
-                          TextField numberField,
-                          TextField waybillField,
-                          TextField factoryField) {
+    public void set(TreeGrid<InventoryEntity> tree,
+                    Grid<Item> grid,
+                    TextField nameField,
+                    TextField numberField,
+                    TextField waybillField,
+                    TextField factoryField) {
 
         HasValue.ValueChangeListener<AbstractField.ComponentValueChangeEvent<TextField,String>>
                 listener = event -> {
@@ -38,6 +38,27 @@ public class CommonFilterFieldListener {
                                 waybillField.getValue(),
                                 factoryField.getValue())));
         };
+
+        List.of(nameField,numberField,waybillField,factoryField).
+                forEach(textField -> textField.addValueChangeListener(listener));
+
+        grid.recalculateColumnWidths();
+    }
+
+    public void set(Grid<Item> grid,
+                    TextField nameField,
+                    TextField numberField,
+                    TextField waybillField,
+                    TextField factoryField) {
+
+        grid.setDataProvider(factory.getWriteoffItemsDataProvider(new Filters())); // init
+
+        HasValue.ValueChangeListener<AbstractField.ComponentValueChangeEvent<TextField,String>>
+                listener = event -> grid.setDataProvider(factory.getWriteoffItemsDataProvider(
+                        new Filters(nameField.getValue(),
+                                numberField.getValue(),
+                                waybillField.getValue(),
+                                factoryField.getValue())));
 
         List.of(nameField,numberField,waybillField,factoryField).
                 forEach(textField -> textField.addValueChangeListener(listener));

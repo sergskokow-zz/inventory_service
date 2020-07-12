@@ -7,7 +7,6 @@ import ru.gctc.inventory.server.db.entities.*;
 import ru.gctc.inventory.server.db.repos.ItemRepository;
 import ru.gctc.inventory.server.db.services.dto.Filters;
 
-import java.util.LinkedList;
 import java.util.List;
 
 @Service
@@ -92,28 +91,14 @@ public class ItemService extends InventoryEntityService<Item,ItemRepository> {
         return null;
     }
 
-    // TODO delete this
-    public List<InventoryEntity> getPath(Item item) {
-        LinkedList<InventoryEntity> path = new LinkedList<>();
-        Place p = item.getPlace();
-        Container c;
-        Room r;
-        if(p!=null) {
-            c = p.getContainer();
-            r = c.getRoom();
-            path.add(c);
-            path.add(p);
-        } else
-            r = item.getRoom();
-        Floor f = r.getFloor();
-        Building b = f.getBuilding();
-        path.addFirst(r);
-        path.addFirst(f);
-        path.addFirst(b);
-        return path;
-    }
-
     public Iterable<Item> getAllByIds(Iterable<Long> itemIds) {
         return repository.findAllById(itemIds);
+    }
+
+    public List<Item> getWriteoffItems(int offset, int limit, Filters filters, Sort sort) {
+        return repository.findWriteoffItems(filters, PageRequest.of(offset, limit, sort)).getContent();
+    }
+    public int getWriteoffItemsCount(Filters filters) {
+        return (int) repository.findWriteoffItems(filters, null).getTotalElements();
     }
 }

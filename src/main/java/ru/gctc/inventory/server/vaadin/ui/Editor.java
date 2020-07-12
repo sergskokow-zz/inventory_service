@@ -1,6 +1,8 @@
 package ru.gctc.inventory.server.vaadin.ui;
 
 import com.flowingcode.vaadin.addons.ironicons.IronIcons;
+import com.vaadin.flow.component.ClickEvent;
+import com.vaadin.flow.component.ComponentEventListener;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.combobox.ComboBox;
@@ -9,7 +11,6 @@ import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.formlayout.FormLayout;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.html.H2;
-import com.vaadin.flow.component.html.Image;
 import com.vaadin.flow.component.html.Label;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.icon.Icon;
@@ -28,12 +29,18 @@ import org.springframework.stereotype.Component;
 import ru.gctc.inventory.server.db.entities.*;
 import ru.gctc.inventory.server.db.services.*;
 import ru.gctc.inventory.server.db.services.exceptions.EntityNotFoundException;
+import ru.gctc.inventory.server.security.RequiresAuthorization;
 import ru.gctc.inventory.server.vaadin.exceptions.FloatingItemException;
 import ru.gctc.inventory.server.vaadin.exceptions.RequiredFieldNotFilledException;
 import ru.gctc.inventory.server.vaadin.utils.DateCast;
 import ru.gctc.inventory.server.vaadin.utils.InventoryEntityNames;
 import ru.gctc.inventory.server.vaadin.utils.PhotoUpload;
+import ru.gctc.inventory.server.vaadin.utils.PhotoViewer;
 
+import javax.imageio.ImageIO;
+import javax.sql.rowset.serial.SerialBlob;
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayOutputStream;
 import java.lang.reflect.InvocationTargetException;
 import java.util.List;
 import java.util.Map;
@@ -41,27 +48,29 @@ import java.util.Objects;
 
 @UIScope
 @Component
-public class Editor extends Dialog {
-
+public class Editor extends Dialog implements RequiresAuthorization {
     private BuildingService buildingService;
     private FloorService floorService;
     private RoomService roomService;
     private ContainerService containerService;
     private PlaceService placeService;
     private ItemService itemService;
+    private PhotoService photoService;
     @Autowired
     protected void setItemService(BuildingService buildingService,
                                   FloorService floorService,
                                   RoomService roomService,
                                   ContainerService containerService,
                                   PlaceService placeService,
-                                  ItemService itemService) {
+                                  ItemService itemService,
+                                  PhotoService photoService) {
         this.buildingService = buildingService;
         this.floorService = floorService;
         this.roomService = roomService;
         this.containerService = containerService;
         this.placeService = placeService;
         this.itemService = itemService;
+        this.photoService = photoService;
     }
 
     public enum Mode { ADD, EDIT }
@@ -93,12 +102,14 @@ public class Editor extends Dialog {
     private final DatePicker incomingDateField, writeoffDateField,
                              sheduledWriteoffDateField, commissioningDateField;
     private final PhotoUpload photoUpload;
-    private final Image uploadedPhoto;
+    private final PhotoViewer uploadedPhoto;
     private final MemoryBuffer photoBuffer;
+    private final Button deletePhotoButton;
     private final Button confirmButton, cancelButton;
     private final Span interval;
 
     private final Notification notification;
+    private final ConfirmButtonClickListener confirmButtonClickListener;
 
     public Editor() {
         form = new FormLayout();
@@ -245,21 +256,36 @@ public class Editor extends Dialog {
         photoUpload = new PhotoUpload(photoBuffer);
         VerticalLayout uploadLabelsLayout = new VerticalLayout(
                 new Label("Загрузите фото внешнего вида."),
-                new Label("Файл формата *.jpeg, *.png или *.gif размером не более 20МБ.")
+                new Label("Файл формата *.jpeg, *.png или *.gif размером не более 50МБ.")
         );
         uploadLabelsLayout.setSpacing(false);
         photoUpload.setDropLabel(uploadLabelsLayout);
-        uploadedPhoto = new Image();
+        uploadedPhoto = new PhotoViewer();
+        uploadedPhoto.setAlt("Фото отсутствует");
         uploadedPhoto.setMaxHeight("20%");
         uploadedPhoto.setMaxWidth("20%");
+        deletePhotoButton = new Button("Удалить фото");
+        deletePhotoButton.addClickListener(event -> {
+            if(!uploadedPhoto.isEmpty()) {
+                uploadedPhoto.clear();
+                isPhotoChanged = true;
+            }
+            photoUpload.interruptUpload();
+        });
         photoUpload.addSucceededListener(event -> {
             StreamResource photo = new StreamResource(event.getFileName(), photoBuffer::getInputStream);
             uploadedPhoto.setSrc(photo);
+            deletePhotoButton.setEnabled(true);
+            isPhotoChanged = true;
         });
-        photoUpload.addPhotoRemoveListener(event -> uploadedPhoto.setSrc(""));
+        photoUpload.addPhotoRemoveListener(event -> {
+            uploadedPhoto.clear();
+            deletePhotoButton.setEnabled(false);
+            isPhotoChanged = true;
+        });
         photoUpload.setAcceptedFileTypes("image/jpeg", "image/png", "image/gif");
         photoUpload.setMaxFiles(1);
-        photoUpload.setMaxFileSize(1024*1024*20);
+        photoUpload.setMaxFileSize(1024*1024*50);
 
         /* COMMON */
 
@@ -271,6 +297,9 @@ public class Editor extends Dialog {
 
         notification = new Notification();
         notification.setDuration(3000);
+
+        confirmButtonClickListener = new ConfirmButtonClickListener();
+        confirmButton.addClickListener(confirmButtonClickListener);
     }
 
     // TODO recursive func
@@ -361,10 +390,15 @@ public class Editor extends Dialog {
 
             commissioningDateField.setValue(item.getCommissioning()==null?
                     commissioningDateField.getEmptyValue() : DateCast.toLocalDate(item.getCommissioning()));
-            // TODO photos
-            //uploadedPhoto.setSrc(new StreamResource());
+
+            uploadedPhoto.setValue(item.getPhoto());
+            deletePhotoButton.setEnabled(item.getPhoto()!=null);
+            isPhotoChanged = false;
         }
     }
+
+    private Photo photo;
+    private boolean isPhotoChanged = false;
 
     private void setData(InventoryEntity entity) throws FloatingItemException, RequiredFieldNotFilledException {
         if(entity instanceof Building) {
@@ -429,6 +463,20 @@ public class Editor extends Dialog {
             item.setSheduled_writeoff(DateCast.toDate(sheduledWriteoffDateField.getValue()));
             item.setCommissioning(DateCast.toDate(commissioningDateField.getValue()));
             // TODO photos
+            photo = item.getPhoto();
+            if(isPhotoChanged && !uploadedPhoto.isEmpty()) {
+                if(photo==null)
+                    photo = new Photo(item);
+                String mime = photoBuffer.getFileData().getMimeType();
+                String ext = mime.substring(mime.indexOf('/') + 1);
+                photo.setMime(mime);
+                try {
+                    BufferedImage bufferedPhoto = ImageIO.read(photoBuffer.getInputStream());
+                    ByteArrayOutputStream photoContent = new ByteArrayOutputStream();
+                    ImageIO.write(bufferedPhoto, ext, photoContent);
+                    photo.setData(new SerialBlob(photoContent.toByteArray()));
+                } catch (Exception ignored) {}
+            }
         }
     }
 
@@ -464,28 +512,52 @@ public class Editor extends Dialog {
             containerService.add((Container) entity);
         else if(entity instanceof Place)
             placeService.add((Place) entity);
-        else if(entity instanceof Item)
-            itemService.add((Item) entity);
+        else if(entity instanceof Item) {
+            Item item = (Item) entity;
+            item = itemService.add(item);
+            if(!uploadedPhoto.isEmpty()) {
+                photo.setItem(item);
+                photoService.add(photo);
+            }
+        }
     }
 
-    private void edit(InventoryEntity entity)
+    private InventoryEntity edit(InventoryEntity entity)
             throws FloatingItemException,
             EntityNotFoundException,
             RequiredFieldNotFilledException {
 
         setData(entity);
         if(entity instanceof Building)
-            buildingService.edit((Building) entity);
+            return buildingService.edit((Building) entity);
         else if(entity instanceof Floor)
-            floorService.edit((Floor) entity);
+            return floorService.edit((Floor) entity);
         else if(entity instanceof Room)
-            roomService.edit((Room) entity);
+            return roomService.edit((Room) entity);
         else if(entity instanceof Container)
-            containerService.edit((Container) entity);
+            return containerService.edit((Container) entity);
         else if(entity instanceof Place)
-            placeService.edit((Place) entity);
-        else if(entity instanceof Item)
-            itemService.edit((Item) entity);
+            return placeService.edit((Place) entity);
+        else if(entity instanceof Item) {
+            Item item = (Item) entity;
+
+            if(isPhotoChanged) {
+                if(uploadedPhoto.isEmpty()) {
+                    photoService.delete(photo);
+                    item.setPhoto(null);
+                }
+                else if(item.getPhoto()!=null)
+                    photoService.edit(photo);
+                else {
+                    photo.setItem(item);
+                    photoService.add(photo);
+                    item.setPhoto(photo);
+                }
+            }
+            item = itemService.edit(item);
+            return item;
+        }
+        return null;
     }
 
     @Setter
@@ -496,6 +568,8 @@ public class Editor extends Dialog {
     private InventoryEntity target, parent;
 
     public void show(Mode mode, InventoryEntity entity) {
+        if(!hasRights())
+            return;
         form.removeAll();
         if (mode == Mode.ADD) {
             confirmButton.setText("Добавить");
@@ -524,54 +598,15 @@ public class Editor extends Dialog {
                     header.setText("Добавить объект");
                 }
             } catch (Exception ignored) { }
-
-            confirmButton.addClickListener(event -> {
-                try {
-                    add(target);
-                    if(target instanceof Item)
-                        grid.getDataProvider().refreshAll();
-                    else if(target instanceof Building)
-                        tree.getDataProvider().refreshAll();
-                    else
-                        tree.getDataProvider().refreshItem(parent, true);
-                    showNotification("Успешно добавлено " + InventoryEntityNames.get(target));
-                    close();
-                } catch (FloatingItemException floatingItemException) {
-                    showInfoMessage("Ошибка", VaadinIcon.WARNING.create(),
-                            "Укажите местоположение объекта. Объект может находиться в шкафу, " +
-                                    "на стеллаже или в комнате.");
-                } catch (RequiredFieldNotFilledException requiredFieldNotFilledException) {
-                    showNotification("Заполните все обязательные поля.");
-                }
-            });
         } else {// target = entity
             header.setText("Редактировать");
             confirmButton.setText("Сохранить");
             confirmButton.setIcon(IronIcons.SAVE.create());
             loadData(entity);
             target = entity;
-            confirmButton.addClickListener(event -> {
-                try {
-                    edit(target);
-                    if(target instanceof Item)
-                        grid.getDataProvider().refreshItem((Item) target);
-                    else
-                        tree.getDataProvider().refreshItem(target);
-                    showNotification("Успешно отредактировано " + InventoryEntityNames.get(target));
-                    close();
-                } catch (FloatingItemException floatingItemException) {
-                    showInfoMessage("Ошибка", VaadinIcon.WARNING.create(),
-                            "Укажите местоположение объекта. Объект может находиться в шкафу, " +
-                                    "на стеллаже или в комнате.");
-                } catch (EntityNotFoundException e) {
-                    showInfoMessage("Ошибка", VaadinIcon.WARNING.create(),
-                            "Редактируемый объект не найден. Возможно, он был удалён.");
-                } catch (RequiredFieldNotFilledException requiredFieldNotFilledException) {
-                    showNotification("Заполните все обязательные поля.");
-                }
-            });
-
         }
+
+        confirmButtonClickListener.set(mode, target, parent);
 
         if(target==null || target instanceof Building) {
             form.setResponsiveSteps(columns.get(2));
@@ -647,7 +682,7 @@ public class Editor extends Dialog {
             form.add(nameField,descriptionField,countField,costField,itemStatusField,
                     inventoryNumberField,waybillField,factoryField,
                     incomingDateField,writeoffDateField,sheduledWriteoffDateField,commissioningDateField,
-                    photoUpload,uploadedPhoto);
+                    photoUpload,deletePhotoButton,uploadedPhoto);
             form.add(interval); // for buttons
 
 
@@ -660,8 +695,7 @@ public class Editor extends Dialog {
             form.setColspan(inventoryNumberField,   2);
             form.setColspan(waybillField,           2);
             form.setColspan(incomingDateField,      2);
-            form.setColspan(photoUpload,            3);
-            form.setColspan(uploadedPhoto,          1);
+            form.setColspan(photoUpload,            2);
             form.setColspan(interval,               3);
 
             /*
@@ -674,14 +708,13 @@ public class Editor extends Dialog {
             * [   inventoryNumberField    ][        waybillField         ][   factoryField  ]
             * [     incomingDateField     ][writeoffD.F.][sheduledW/oD.F.][commissioningD.F.]
             *
-            * [               photoUpload               ]                 [  uploadedPhoto  ]
+            * [       photoUpload         ][deletePhotoButton][ uploadedPhoto ]
             *
             * [-----------------------------------------][ confirmButton ][  cancelButton   ]
             * */
         }
         form.add(confirmButton, cancelButton);
         preparePathBoxes(target);
-        // ...
         open();
     }
 
@@ -694,5 +727,50 @@ public class Editor extends Dialog {
     private void showNotification(String text) {
         notification.setText(text);
         notification.open();
+    }
+
+    private class ConfirmButtonClickListener implements ComponentEventListener<ClickEvent<Button>> {
+        private Mode mode;
+        private InventoryEntity target, parent;
+
+        public void set(Mode mode, InventoryEntity target, InventoryEntity parent) {
+            this.mode = mode;
+            this.target = target;
+            this.parent = parent;
+        }
+
+        @Override
+        public void onComponentEvent(ClickEvent<Button> event) {
+            try {
+                if (mode == Mode.ADD) {
+                    add(target);
+                    if (target instanceof Item)
+                        grid.getDataProvider().refreshAll();
+                    else if (target instanceof Building)
+                        tree.getDataProvider().refreshAll();
+                    else
+                        tree.getDataProvider().refreshItem(parent, true);
+                    showNotification("Успешно добавлено " + InventoryEntityNames.get(target));
+                    close();
+                } else {
+                    target = edit(target);
+                    if(target instanceof Item)
+                        grid.getDataProvider().refreshAll();
+                    else
+                        tree.getDataProvider().refreshAll();
+                    showNotification("Успешно отредактировано " + InventoryEntityNames.get(target));
+                    close();
+                }
+            } catch (FloatingItemException floatingItemException) {
+                showInfoMessage("Ошибка", VaadinIcon.WARNING.create(),
+                        "Укажите местоположение объекта. Объект может находиться в шкафу, " +
+                                "на стеллаже или в комнате.");
+            } catch (RequiredFieldNotFilledException requiredFieldNotFilledException) {
+                showNotification("Заполните все обязательные поля.");
+            } catch (EntityNotFoundException e) {
+                showInfoMessage("Ошибка", VaadinIcon.WARNING.create(),
+                        "Редактируемый объект не найден. Возможно, он был удалён.");
+            }
+        }
     }
 }

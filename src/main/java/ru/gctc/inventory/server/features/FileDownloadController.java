@@ -91,6 +91,31 @@ public class FileDownloadController {
         return response(generatedFile.getFileName(), mimeType, generatedFile.getInputStream());
     }
 
+    @RequestMapping(value = "/download/qr", method = RequestMethod.GET)
+    public ResponseEntity<InputStreamResource> downloadQrCodes(@RequestParam List<Long> itemsId) {
+        List<Item> items = (List<Item>) itemService.getAllByIds(itemsId);
+        if(items.isEmpty())
+            return ResponseEntity.notFound().build();
+        GeneratedFile qrCodes = Reports.getQrCodes(items);
+        return response(qrCodes.getFileName(), DOCX_MIME_TYPE, qrCodes.getInputStream());
+    }
+
+    @RequestMapping(value = "/download/qr/by_parent", method = RequestMethod.GET)
+    public ResponseEntity<InputStreamResource> downloadQrCodes(@RequestParam int parentType,
+                                                               @RequestParam long parentId) {
+        InventoryEntity parent;
+        Optional<? extends InventoryEntity> searchResult;
+        searchResult = getById(parentType, parentId);
+
+        if(searchResult.isPresent())
+            parent = searchResult.get();
+        else
+            return ResponseEntity.notFound().build();
+
+        GeneratedFile qrCodes = Reports.getQrCodes(itemService.getAllChildren(parent));
+        return response(qrCodes.getFileName(), DOCX_MIME_TYPE, qrCodes.getInputStream());
+    }
+
     private Optional<? extends InventoryEntity> getById(int type, long id) {
         switch (type) {
             case 0:

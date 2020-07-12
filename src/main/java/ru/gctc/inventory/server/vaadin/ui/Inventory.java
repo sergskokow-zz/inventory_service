@@ -10,7 +10,6 @@ import com.vaadin.flow.component.html.Hr;
 import com.vaadin.flow.component.html.Label;
 import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
-import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
@@ -18,8 +17,10 @@ import com.vaadin.flow.component.splitlayout.SplitLayout;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.component.treegrid.TreeGrid;
 import com.vaadin.flow.data.value.ValueChangeMode;
+import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.spring.annotation.UIScope;
+import lombok.Getter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.vaadin.olli.ClipboardHelper;
@@ -33,17 +34,20 @@ import java.text.DecimalFormat;
 import java.util.Set;
 
 @Route(value = "",layout = MainView.class)
+@PageTitle("Система инвентаризации")
 @Component
 @UIScope
 public class Inventory extends Div {
     private final SplitLayout splitLayout = new SplitLayout();
+    @Getter
     private final TreeGrid<InventoryEntity> tree = new TreeGrid<>();
+    @Getter
     private final Grid<Item> grid = new Grid<>();
 
     @Autowired
     public Inventory(InventoryEntityDataProvider provider, ItemsDataProviderFactory itemsDataProviderFactory,
-                     TreeSelectionListener treeSelectionListener, CommonFilterFieldListener commonFilterFieldListener,
-                     DeleteConfirmDialog deleteConfirmDialog, Editor editor) {
+                     TreeSelectionListener treeSelectionListener, CommonFilterFieldListenerFactory commonFilterFieldListenerFactory,
+                     DeleteConfirmDialog deleteConfirmDialog, Viewer viewer, Editor editor) {
         editor.setTree(tree);
         editor.setGrid(grid);
 
@@ -139,7 +143,7 @@ public class Inventory extends Div {
         filters.getCell(factoryColumn).setComponent(factoryNumFilter);
 
         treeSelectionListener.setFilters(nameFilter,inventoryNumFilter,waybillNumFilter,factoryNumFilter);
-        commonFilterFieldListener.wire(tree,grid,nameFilter,inventoryNumFilter,waybillNumFilter,factoryNumFilter);
+        commonFilterFieldListenerFactory.set(tree,grid,nameFilter,inventoryNumFilter,waybillNumFilter,factoryNumFilter);
 
         gridLayout.add(searchField, grid);
         searchField.setWidthFull();
@@ -148,6 +152,11 @@ public class Inventory extends Div {
         grid.setSizeFull();
         grid.addThemeVariants(GridVariant.LUMO_ROW_STRIPES);
         splitLayout.setSplitterPosition(25.0);
+
+        grid.addItemDoubleClickListener(event -> {
+            viewer.setTarget(event.getItem());
+            viewer.open();
+        });
 
         /* CONTEXT MENU */
         var gridContextMenu = grid.addContextMenu();
@@ -176,7 +185,7 @@ public class Inventory extends Div {
         GridContextMenuHelper editListener = event ->
                 editor.show(Editor.Mode.EDIT, (InventoryEntity) event.getItem().orElse(null));
         GridContextMenuHelper deleteListener = event ->
-                deleteConfirmDialog.show((Set<? extends InventoryEntity>) event.getGrid().getSelectedItems());
+                deleteConfirmDialog.show((Set<? extends InventoryEntity>) event.getGrid().getSelectedItems(), tree, grid);
 
         /* make menu */
         var treeAddButton = treeContextMenu.addItem(
@@ -190,25 +199,32 @@ public class Inventory extends Div {
         var treeDocxReportButton = treeReportMenu.addItem(
                 new HorizontalLayout(VaadinIcon.FILE_TEXT_O.create(),new Label("Microsoft Word (*.docx)")));
         treeDocxReportButton.addMenuItemClickListener(event -> {
-            event.getItem().ifPresent(entity -> {
-                ReportRedirect.reportByParent(getUI().get().getPage(), "docx", entity);
+            event.getItem().ifPresent(parent -> {
+                DownloadRedirect.reportByParent(this, "docx", parent);
             });
         });
         var treeXlsxReportButton = treeReportMenu.addItem(
                 new HorizontalLayout(VaadinIcon.FILE_TABLE.create(),new Label("Microsoft Excel (*.xlsx)")));
         treeXlsxReportButton.addMenuItemClickListener(event -> {
-            event.getItem().ifPresent(entity -> {
-                ReportRedirect.reportByParent(getUI().get().getPage(), "xlsx", entity);
+            event.getItem().ifPresent(parent -> {
+                DownloadRedirect.reportByParent(this, "xlsx", parent);
             });
         });
         var treeQrMenu = treeContextMenu.addItem(
-                new HorizontalLayout(VaadinIcon.QRCODE.create(),new Label("QR-коды...")));// TODO qr
+                new HorizontalLayout(VaadinIcon.QRCODE.create(),new Label("QR-коды...")));
+        treeQrMenu.addMenuItemClickListener(event -> {
+            event.getItem().ifPresent(parent -> DownloadRedirect.qrCodesByParent(this, parent));
+        });
         treeContextMenu.add(new Hr());
         var treeDeleteButton = treeContextMenu.addItem(
                 new HorizontalLayout(VaadinIcon.TRASH.create(),new Label("Удалить")), deleteListener::onMenuClick);
 
         var gridOpenButton = gridContextMenu.addItem(
-                new HorizontalLayout(VaadinIcon.PICTURE.create(),new Label("Просмотр")));// TODO viewer
+                new HorizontalLayout(VaadinIcon.PICTURE.create(),new Label("Просмотр")));
+        gridOpenButton.addMenuItemClickListener(event -> event.getItem().ifPresent(item -> {
+            viewer.setTarget(item);
+            viewer.open();
+        }));
         var gridAddButton = gridContextMenu.addItem(
                 new HorizontalLayout(VaadinIcon.PLUS.create(),new Label("Добавить...")), addListener::onMenuClick);
         var gridEditButton = gridContextMenu.addItem(
@@ -223,9 +239,9 @@ public class Inventory extends Div {
             var selectedItems = grid.getSelectedItems();
             var selectedParent = tree.getSelectedItems();
             if(!selectedItems.isEmpty())
-                ReportRedirect.reportByItems(getUI().get().getPage(), "docx", selectedItems);
+                DownloadRedirect.reportByItems(this, "docx", selectedItems);
             else if(!selectedParent.isEmpty())
-                ReportRedirect.reportByParent(getUI().get().getPage(), "docx", selectedParent.iterator().next());
+                DownloadRedirect.reportByParent(this, "docx", selectedParent.iterator().next());
         });
         var gridXlsxReportButton = gridReportMenu.addItem(
                 new HorizontalLayout(VaadinIcon.FILE_TABLE.create(),new Label("Microsoft Excel (*.xlsx)")));
@@ -233,14 +249,22 @@ public class Inventory extends Div {
             var selectedItems = grid.getSelectedItems();
             var selectedParent = tree.getSelectedItems();
             if(!selectedItems.isEmpty())
-                ReportRedirect.reportByItems(getUI().get().getPage(), "xlsx", selectedItems);
+                DownloadRedirect.reportByItems(this, "xlsx", selectedItems);
             else if(!selectedParent.isEmpty())
-                ReportRedirect.reportByParent(getUI().get().getPage(), "xlsx", selectedParent.iterator().next());
+                DownloadRedirect.reportByParent(this, "xlsx", selectedParent.iterator().next());
         });
         var gridQrMenu = gridContextMenu.addItem(
                 new HorizontalLayout(VaadinIcon.QRCODE.create(),new Label("QR-коды..."))).getSubMenu();
         var gridQrDownload = gridQrMenu.addItem(
-                new HorizontalLayout(VaadinIcon.DOWNLOAD.create(),new Label("Скачать QR-коды")));// TODO qr
+                new HorizontalLayout(VaadinIcon.DOWNLOAD.create(),new Label("Скачать QR-коды")));
+        gridQrDownload.addMenuItemClickListener(event -> {
+            var selectedItems = grid.getSelectedItems();
+            var selectedParent = tree.getSelectedItems();
+            if(!selectedItems.isEmpty())
+                DownloadRedirect.qrCodesByItems(this, selectedItems);
+            else if(!selectedParent.isEmpty())
+                DownloadRedirect.qrCodesByParent(this, selectedParent.iterator().next());
+        });
         gridQrMenu.add(new Hr());
         gridQrMenu.add(linkLayout);
         gridContextMenu.add(new Hr());
@@ -248,7 +272,7 @@ public class Inventory extends Div {
                 new HorizontalLayout(VaadinIcon.TRASH.create(),new Label("Удалить")), deleteListener::onMenuClick);
 
 
-        /* menu listeners */
+        /* context menu cases */
         treeContextMenu.addGridContextMenuOpenedListener(event -> {
             event.getItem().ifPresent(item -> GridContextMenuHelper.rightClickSelection(tree, item));
             var selected = tree.getSelectedItems();
@@ -292,7 +316,7 @@ public class Inventory extends Div {
                 gridReportButton.setVisible(true);
                 gridQrDownload.setVisible(true);
                 linkLayout.setVisible(true);
-                linkField.setValue(InventoryEntityNames.get(selected.iterator().next())); // TODO links
+                linkField.setValue(LinkFactory.get(selected.iterator().next().getId()));
                 gridDeleteButton.setVisible(true);
             } else {
                 gridOpenButton.setVisible(false);
@@ -304,12 +328,5 @@ public class Inventory extends Div {
                 gridDeleteButton.setVisible(true);
             }
         });
-    }
-
-    // TODO replace this
-    private final Notification notification = new Notification();
-    private void showNotification(String text) {
-        notification.setText(text);
-        notification.open();
     }
 }

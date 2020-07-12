@@ -42,6 +42,7 @@ dependencies {
     compile group: 'org.apache.poi',         name: 'poi-ooxml',             version: '4.1.2'
     compile group: 'de.codecamp.vaadin',     name: 'vaadin-message-dialog', version: '1.0.0'
     compile group: 'org.vaadin.olli',        name: 'file-download-wrapper', version: '3.0.1'
+    compile group: 'io.nayuki',              name: 'qrcodegen',             version: '1.6.0'
 }
 
 dependencyManagement {
@@ -56,5 +57,5 @@ test {
 
 vaadin {
     pnpmEnable = true
-    productionMode=true
+    productionMode = true
 }

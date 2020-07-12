@@ -1,23 +1,32 @@
 package ru.gctc.inventory.server.features;
 
+import io.nayuki.qrcodegen.QrCode;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.Value;
+import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
 import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.util.Units;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.apache.poi.xwpf.usermodel.*;
 import ru.gctc.inventory.server.db.entities.Item;
+import ru.gctc.inventory.server.vaadin.utils.DateCast;
 import ru.gctc.inventory.server.vaadin.utils.InventoryEntityNames;
+import ru.gctc.inventory.server.vaadin.utils.LinkFactory;
 
+import javax.imageio.ImageIO;
+import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
-public class Reports {
+public abstract class Reports {
     private static String safeFileName(String rawFileName) {
         return rawFileName.replaceAll("[\\\\/:*?\"<>|]", "_");
     }
@@ -39,7 +48,7 @@ public class Reports {
         XWPFParagraph subtitleParagraph = document.createParagraph();
         subtitleParagraph.setAlignment(ParagraphAlignment.CENTER);
         XWPFRun subtitleParagraphRun = subtitleParagraph.createRun();
-        String currentDateTime = ZonedDateTime.now().format(dateTimeFormatter);
+        String currentDateTime = ZonedDateTime.now(DateCast.getDefaultTimeZone()).format(dateTimeFormatter);
         subtitleParagraphRun.setText(currentDateTime);
         subtitleParagraphRun.setFontSize(14);
         subtitleParagraphRun.setFontFamily(fontFamily);
@@ -147,7 +156,7 @@ public class Reports {
         Workbook book = new XSSFWorkbook();
         Sheet sheet = book.createSheet(safeFileName(title));
 
-        ZonedDateTime now = ZonedDateTime.now();
+        ZonedDateTime now = ZonedDateTime.now(DateCast.getDefaultTimeZone());
         String currentDateTime = now.format(dateTimeFormatter);
 
         /* cell types */
@@ -230,6 +239,75 @@ public class Reports {
             outputStream.close();
             return new GeneratedFile(safeFileName(String.format("%s - %s.xlsx", title, currentDateTime)),
                     new ByteArrayInputStream(xlsxData));
+        } catch (Exception e) { return null; }
+    }
+
+    @Getter @Setter
+    private static int qrCodesColumns = 2;
+
+    public static GeneratedFile getQrCodes(List<Item> items) {
+        /* .docx document */
+        XWPFDocument document = new XWPFDocument();
+        /* table */
+        XWPFTable table = document.createTable(1, qrCodesColumns*2);
+        table.setWidth("100%");
+        /* items */
+        Iterator<Item> i = items.iterator();
+        for(int row=0; row<=items.size()/qrCodesColumns; row++) {
+            XWPFTableRow currentRow = table.createRow();
+            for(int cell=0; cell<qrCodesColumns*2 && i.hasNext(); cell+=2) {
+                Item currentItem = i.next();
+                XWPFTableCell imageCell = currentRow.getCell(cell);
+                XWPFRun imageRun = imageCell.getParagraphArray(0).createRun();
+                try {
+                    BufferedImage image = QrCode.encodeText(LinkFactory.get(currentItem.getId()),
+                            QrCode.Ecc.MEDIUM).toImage(10,0);
+                    ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
+                    ImageIO.write(image, "jpg", byteStream);
+                    byte[] qrCodeImageData = byteStream.toByteArray();
+                    imageRun.addPicture(new ByteArrayInputStream(qrCodeImageData),
+                            Document.PICTURE_TYPE_JPEG,
+                            "qr.jpg", Units.pixelToEMU(100), Units.pixelToEMU(100));
+                } catch (IOException | InvalidFormatException e) {
+                    e.printStackTrace();
+                }
+                XWPFTableCell textCell = currentRow.getCell(cell+1);
+                XWPFRun titleRun = textCell.getParagraphArray(0).createRun();
+                titleRun.setText(InventoryEntityNames.get(currentItem));
+                titleRun.setFontSize(14);
+                titleRun.setBold(true);
+                titleRun.setFontFamily(fontFamily);
+
+                List.of(Optional.ofNullable(currentItem.getDescription()),
+                        Optional.ofNullable(currentItem.getNumber()))
+                        .stream().filter(Optional::isPresent).map(Optional::get)
+                        .forEach(text -> {
+                            XWPFRun textRun = textCell.addParagraph().createRun();
+                            textRun.setText(text);
+                            textRun.setFontSize(12);
+                            textRun.setFontFamily(fontFamily);
+                        });
+
+                Map.of("Списание", Optional.ofNullable(currentItem.getWriteoff()),
+                        "Плановое списание", Optional.ofNullable(currentItem.getSheduled_writeoff()))
+                        .entrySet().stream().filter(entry -> entry.getValue().isPresent())
+                        .forEach(entry -> {
+                            XWPFRun dateRun = textCell.addParagraph().createRun();
+                            dateRun.setText(String.format("%s: %s", entry.getKey(),
+                                    DateCast.toLocalDate(entry.getValue().get())));
+                            dateRun.setFontSize(12);
+                            dateRun.setFontFamily(fontFamily);
+                        });
+            }
+        }
+        /* save docx */
+        try {
+            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+            document.write(outputStream);
+            document.close();
+            byte[] docxData = outputStream.toByteArray();
+            outputStream.close();
+            return new GeneratedFile("QR.docx", new ByteArrayInputStream(docxData));
         } catch (Exception e) { return null; }
     }
 }
