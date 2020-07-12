@@ -1,9 +1,9 @@
 package ru.gctc.inventory.server.vaadin.utils;
 
-import java.net.InetAddress;
-
 public abstract class LinkFactory {
+    private static final String hostName = System.getenv("APP_ADDRESS");
+
     public static String get(Long id) {
-        return String.format("%s/item/%d", InetAddress.getLoopbackAddress().getHostName(), id);
+        return String.format("%s/item/%d", hostName, id);
     }
 }
